@@ -1,0 +1,22 @@
+# requirements.txt: This file lists the required Python packages and their versions
+# for developing code in this repository. These packages are essential for data
+# manipulation, analysis, machine learning modeling, and maintaining code quality.
+# Additionally, certain packages are included to support code formatting and linting.
+
+# Data Manipulation and Analysis Libraries
+joblib==1.4.0      # Caching and parallel execution
+numpy==1.26.4      # Numerical computing
+pandas==2.2.2      # Data manipulation and analysis
+
+# Date and Time Libraries
+python-dateutil==2.9.0.post0  # Extensions to standard datetime module
+pytz==2024.1                 # Time zone information
+tzdata==2024.1               # Time zone database updates
+
+# Machine Learning and Scientific Computing Libraries
+scikit-learn==1.4.2  # Machine learning modeling
+scipy==1.13.0        # Scientific and technical computing
+
+# Compatibility and Utility Libraries
+six==1.16.0          # Python 2 and 3 compatibility
+threadpoolctl==3.4.0 # Control number of threads used in scikit-learn

@@ -32,26 +32,20 @@ make format
 
 ### `create_environment`
 
-Setup a Python interpreter environment. If Conda is available, it will create a Conda environment using the `environment.yml` configuration file. If not, a virtual environment will be created with `virtualenv`.
+Setup a Python virtual environment using `virtualenv`.
 
 ```bash
 make create_environment
 ```
 
-*For Conda environment:*
-
-Activate the new Conda environment from the project directory using:
+Activate the new virtual environment from the project directory using:
 
 ```bash
-conda activate ./env
+source ./env/bin/activate  # Linux/Mac
 ```
-
-*For virtual environment:*
-
-Activate the new virtual environment named after the project with:
-
+or
 ```bash
-workon my_python_project
+.\env\Scripts\activate     # Windows
 ```
 
 ### `install_jupyter_tools`

@@ -1,0 +1,15 @@
+# dev-requirements.txt: This file lists the development-specific Python packages
+# and their versions used for coding and maintaining this repository.
+
+# Local Package
+-e ../.           # Local package (parent directory)
+
+# External Requirements (Linters, Formatters, and Type Checkers)
+flake8            # Code linting and style checking
+flake8-docstrings # Flake8 extension for docstring checking
+mypy              # Static type checking for Python
+black             # Code formatter
+isort             # Import sorter
+
+# Utility Package
+python-dotenv     # Environment variable management from .env files

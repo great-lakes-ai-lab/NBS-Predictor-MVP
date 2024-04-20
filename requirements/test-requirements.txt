@@ -1,0 +1,15 @@
+# test-requirements.txt: This file lists the required Python packages and their versions
+# for continuous integration (CI) and local development in this repository.
+
+# Meta Requirements
+virtualenv       # Virtual environment management tool
+
+# Local Package
+-e .             # Local package (current directory)
+
+# External Requirements
+click            # Command-line interface creation (BSD-3-Clause)
+sphinx           # Documentation generation (BSD-3-Clause)
+coverage         # Code coverage measurement (MIT)
+flake8           # Code linting and style checking (MIT)
+python-dotenv    # Environment variables management (BSD-3-Clause)

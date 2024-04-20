@@ -1,16 +1,27 @@
 # Requirements
 
-## Dependencies structure
-This directory contains the environment setup to reproduce all code in this repository. By listing all of your requirements 
-in the repository you can easily track the packages needed to recreate the analysis. 
+## Overview
+This directory contains the environment setup to reproduce all code in this repository. By explicitly listing all requirements, we ensure a consistent environment across different setups and make it easier to track the packages needed for each stage of development and deployment.
 
-- `environment.yml`: Is the general environment specification for deployment. Per default, this automatically installs `dev-requirements.txt` into the python environment.
-- `dev-requirements.txt`: pip requirements file for the packages needed for developing code (includes convenient dependencies, linters, formatters)  
-- `test-requirements.txt`: pip requirements file for the packages needed to run continuous integration (includes linting, unit test dependencies)  
-- `requirements.txt`: pip requirements file for the packages needed to run code for deployment (minimal dependencies only)  
+### Structure
+The repository includes several requirements files to cater to different stages and aspects of development:
 
-## Workflow
-A good workflow is: 
-1. `pip install` the packages that your analysis needs
-2. Run `pip freeze > requirements.txt` to pin the exact package versions used to recreate the analysis
-3. If you find you need to install another package, run `pip freeze > requirements.txt` again and commit the changes to version control.
+- **`requirements.txt`**: This file contains the pip requirements for both development and deployment using `pip` and `virtualenv`.
+
+- **`dev-requirements.txt`**: This file contains additional development-specific packages for linting, formatting, and other utilities.
+
+- **`test-requirements.txt`**: This file lists the pip requirements needed for continuous integration, including linting and unit testing packages.
+
+### Recommended Workflow
+To maintain a reproducible and consistent environment with `pip` and `virtualenv`, follow this workflow:
+
+1. **Install Required Packages**: Use `pip install` to install the packages needed for your analysis or development.
+  
+2. **Freeze Requirements**: After installing the required packages, run `pip freeze > requirements.txt` to capture the exact package versions used.
+  
+3. **Version Control**: If you add or update packages, remember to update the `requirements.txt` file by running `pip freeze > requirements.txt` again. Commit these changes to your version control system to keep track of the environment changes.
+
+### Conda Support (Future)
+While the project currently supports `pip` and `virtualenv`, we plan to add Conda support with an `environment.yml` file in the future to provide an alternative environment setup for those who prefer Conda.
+
+By adhering to this workflow and maintaining separate requirements files for development, testing, and deployment, we ensure a streamlined and consistent development process while facilitating easy reproducibility and collaboration.

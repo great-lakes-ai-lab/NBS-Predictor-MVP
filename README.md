@@ -1,22 +1,102 @@
+Of course! Here's the README with the friendly introduction added back in:
+
+---
+
 # NBS-Predictor-MVP
-A minimum viable product (MVP) for forecasting net basin supply (NBS) six months into the future using NOAA forecast data
 
-- Target: Forecast monthly net basin supply (NBS) for all of the Great Lakes, for six months into the future
-- Inputs: NOAA forecast data (e.g. Climate Forecast System, National Water Model)
+Welcome to the NBS Predictor MVP project! We're excited to work towards a minimum viable product (MVP) designed to forecast net basin supply (NBS) six months into the future using NOAA forecast data.
 
-(The targets and inputs will evolve over time. This repository represents an initial attempt at this modeling task.)
+- **Target**: Forecast monthly net basin supply (NBS) for all of the Great Lakes, for six months into the future
+- **Inputs**: NOAA forecast data (e.g., Climate Forecast System, National Water Model)
 
-## Requirements
-- Python 3.x
-- (Eventually produce a requirements.txt file and environment setup files)
+Our project will evolve over time, adjusting its targets and inputs as needed. This repository represents our initial effort to tackle this prediciton task.
 
-## Getting started
+## Getting Started
 
-### Build Instructions
+### Prerequisites
 
-We use a Makefile to manage the project's development workflow. Check out the [Makefile Documentation](docs/MAKEFILE.md) for details on the available commands and how to use them.
+Before diving in, make sure you have the following installed on your system:
+
+- **Python 3.8** or later
+- **pip**
+- **virtualenv**
+
+### Clone the Repository
+
+Begin by cloning the repository to your local machine:
+
+```bash
+git clone https://github.com/CIGLR-ai-lab/NBS-Predictor-MVP.git
+```
+
+### Create a Virtual Environment
+
+Next, create a virtual environment named `env` using `virtualenv`:
+
+```bash
+virtualenv env
+```
+
+### Activate the Virtual Environment
+
+Activate your virtual environment:
+
+- **Linux/Mac:**
+
+  ```bash
+  source ./env/bin/activate
+  ```
+
+- **Windows:**
+
+  ```bash
+  .\env\Scripts\activate
+  ```
+
+### Install Required Packages
+
+Install the necessary packages using `pip`:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Build Instructions (Optional)
+
+We provide a Makefile to streamline the project's development workflow, which is optional. You can use the Makefile to simplify the setup process and automate routine tasks. If you prefer using the Makefile, follow these steps:
+
+1. **Run Makefile Command**
+
+   Run the `create_environment` target to set up the virtual environment:
+
+   ```bash
+   make create_environment
+   ```
+
+2. **Install Required Packages**
+
+   Install the required packages using `pip`:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Activate the Virtual Environment**
+
+   Activate the virtual environment as described in the "Activate the Virtual Environment" section above.
+
+4. **Run the Project**
+
+   Run the project using the appropriate command for your project:
+
+   ```bash
+   python your_script.py
+   ```
+
+For more details about the available Makefile commands and how to use them, check out the [Makefile Documentation](docs/MAKEFILE.md).
 
 ## Project Organization
+
 ```
 ├── LICENSE
 |
@@ -24,13 +104,13 @@ We use a Makefile to manage the project's development workflow. Check out the [M
 │   ├── MAKEFILE.md               # Detailed Makefile documentation
 │   └── ...                       # Other documentation files
 |
-├── Makefile           <- Makefile with commands like `make init` or `make lint-requirements` (Coming soon)
+├── Makefile           <- Makefile with commands like `make init` or `make lint-requirements` (Optional)
 |
 ├── README.md          <- The top-level README for developers using this project.
 |
 ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
 |   |                     the creator's initials, and a short `-` delimited description, e.g.
-|   |                     `1.0_jqp_initial-data-exploration`.
+|   |                     `1.0_initial-data-exploration`.
 |   |  
 │   ├── exploratory    <- Notebooks for initial exploration.
 |   |  
@@ -62,4 +142,3 @@ We use a Makefile to manage the project's development workflow. Check out the [M
 │
 └── setup.cfg          <- setup configuration file for linting rules
 ```
-
