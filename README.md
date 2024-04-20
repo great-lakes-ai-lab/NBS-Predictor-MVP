@@ -1,7 +1,3 @@
-Of course! Here's the README with the friendly introduction added back in:
-
----
-
 # NBS-Predictor-MVP
 
 Welcome to the NBS Predictor MVP project! We're excited to work towards a minimum viable product (MVP) designed to forecast net basin supply (NBS) six months into the future using NOAA forecast data.
