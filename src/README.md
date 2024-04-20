@@ -15,5 +15,5 @@ src
 │
 ├── models         <- Scripts to train models and then use trained models to make
 │                     predictions
-└── tests          <- Scripts for unit tests of your functions
+└── tests          <- Scripts for unit tests of the functions
 ```
