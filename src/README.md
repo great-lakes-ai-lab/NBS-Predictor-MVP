@@ -1,6 +1,6 @@
 # Source code folder
 
-All re-usable source code for the project goes here. 
+All re-usable source code for the project goes here.
 
 The source folder is structured as follows:
 ```
@@ -17,5 +17,3 @@ src
 │                     predictions
 └── tests          <- Scripts for unit tests of your functions
 ```
-
-This generic folder structure is useful for most project, but feel free to adapt it to your needs.
