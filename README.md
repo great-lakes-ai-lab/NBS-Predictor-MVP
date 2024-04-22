@@ -138,3 +138,47 @@ For more details about the available Makefile commands and how to use them, chec
 │
 └── setup.cfg          <- setup configuration file for linting rules
 ```
+
+## Contributing
+
+We welcome contributions to the NBS-Predictor-MVP! Whether it's improving the codebase, addressing issues, or enhancing documentation, your help is invaluable.
+
+To contribute:
+
+1. **Fork the repository**: Click on the 'Fork' button on the top right corner of this page to create a copy of this repository in your GitHub account.
+2. **Create your feature branch**: From your fork, checkout a new branch for your feature or fix.
+3. **Commit your changes**: Make sure your commits are clear and understandable.
+4. **Push to the branch**: Push your changes to your fork on GitHub.
+5. **Create a new Pull Request**: Submit a pull request to our master branch with a clear list of what you've done. Please follow the pull request template provided.
+
+Before submitting a pull request, please make sure to review the [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute.
+
+Issues can be reported using the GitHub issue tracker. We ask that you please look for any related issues before submitting a new one to avoid duplicates.
+
+For significant changes, please start a thread in the Discussions tab to chat about what you would like to contribute with the community.
+
+## Code of Conduct
+
+This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code and behave appropriately and respectfully toward other contributors.
+
+Please read the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file to learn more about our community standards.
+
+## Roadmap
+
+The roadmap for NBS-Predictor-MVP is a plan that guides the project's planned features and improvements. Our initial focus is setting up the three primary modules for data acquisition, predictive modeling, and post-processing visualization. 
+
+We are committed to iterative development, aiming to continuously deliver updates that improve reliability, accuracy, and usability. As part of the roadmap, we welcome community feedback to help shape the direction of the project.
+
+Here are our primary milestones for the MVP:
+
+1. **Data Acquisition Module**: Develop the data downloading and formatting module leveraging NOAA's data sources.
+2. **Predictive Modeling**: Implement and validate the first prediction models focusing on accuracy and reliability.
+3. **Post-Processing Visualisation and Reporting**: Set up the module for data visualization, reporting, and interpreting model forecasts.
+
+Future enhancements post-MVP:
+
+- Harnessing more diverse data sources to (hopefully) improve the model's predictive power.
+- Expand our approach to deliver ensemble forecasts.
+- Expanding the visualization tools to allow more extensive data analysis.
+
+Please see the [ROADMAP.md](ROADMAP.md) for the most up-to-date information on upcoming features and project direction.
