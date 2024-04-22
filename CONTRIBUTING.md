@@ -32,9 +32,22 @@ Please follow these steps for your contributions to be considered:
 - Use the present tense ("Add feature" not "Added feature").
 - Reference issues and pull requests after the first line.
 
+## Styleguides
+
+### Git Commit Messages
+
+- Use the present tense ("Add feature" not "Added feature").
+- Reference issues and pull requests after the first line.
+
 ### Python Styleguide
 
-Follow the [PEP 8](https://www.python.org/dev/peps/pep-0008/) guidelines.
+All Python code must adhere to the following style guides:
+
+- **Code Formatting**: Use the `black` auto-formatting tool to ensure your code follows the consistent style. You can format the code by running `make format` from the command line.
+
+- **Linting**: Use `flake8` for linting your Python code. Lint checks can be carried out by running `make lint` from the command line, and any reported issues should be resolved before submitting your pull request.
+
+By adhering to `black` and `flake8`, you'll ensure that your code is both readable and conforms to community standards in Python.
 
 ### Documentation Styleguide
 
