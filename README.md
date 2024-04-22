@@ -151,7 +151,7 @@ To contribute:
 4. **Push to the branch**: Push your changes to your fork on GitHub.
 5. **Create a new Pull Request**: Submit a pull request to our master branch with a clear list of what you've done. Please follow the pull request template provided.
 
-Before submitting a pull request, please make sure to review the [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute.
+Before submitting a pull request, please make sure to review the [contributing guidelines](CONTRIBUTING.md) for detailed information on how to contribute.
 
 Issues can be reported using the GitHub issue tracker. We ask that you please look for any related issues before submitting a new one to avoid duplicates.
 
@@ -161,7 +161,7 @@ For significant changes, please start a thread in the Discussions tab to chat ab
 
 This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code and behave appropriately and respectfully toward other contributors.
 
-Please read the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file to learn more about our community standards.
+Please read the [code of conduct](CODE_OF_CONDUCT.md) file to learn more about our community standards.
 
 ## Roadmap
 
@@ -181,4 +181,4 @@ Future enhancements post-MVP:
 - Expand our approach to deliver ensemble forecasts.
 - Expanding the visualization tools to allow more extensive data analysis.
 
-Please see the [ROADMAP.md](ROADMAP.md) for the most up-to-date information on upcoming features and project direction.
+Please see the [roadmap](ROADMAP.md) for the most up-to-date information on upcoming features and project direction.
