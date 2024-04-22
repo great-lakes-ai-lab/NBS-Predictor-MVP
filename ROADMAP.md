@@ -30,9 +30,8 @@ The following items represent the immediate areas of focus:
 
 ## Long-term Vision
 
-- **Expansion to Other Regions**: Beyond the Great Lakes, refine and adapt models to work with NBS data from additional regions.
 - **Integration with Real-time Data Streams**: Enable the system to ingest real-time data to provide up-to-date forecasts more frequently.
-- **Collaborations and Partnerships**: Work with academic and industry partners to improve and deploy the NBS-Predictor.
+- **Collaborations and Partnerships**: Work with academic and industry partners and stakeholders (e.g. USACE) to improve and deploy the NBS-Predictor.
 
 ## Get Involved
 
