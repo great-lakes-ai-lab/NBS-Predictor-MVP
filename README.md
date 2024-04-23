@@ -157,6 +157,8 @@ Issues can be reported using the GitHub issue tracker. We ask that you please lo
 
 For significant changes, please start a thread in the Discussions tab to chat about what you would like to contribute with the community.
 
+New to Git/GitHub? Check out this resource from [Software Carpentry](https://swcarpentry.github.io/git-novice/)
+
 ## Code of Conduct
 
 This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code and behave appropriately and respectfully toward other contributors.
