@@ -32,6 +32,10 @@ Please follow these steps for your contributions to be considered:
 - Use the present tense ("Add feature" not "Added feature").
 - Reference issues and pull requests after the first line.
 
+### New to Git and GitHub?
+
+Check out this resource page from [Software Carpentry](https://swcarpentry.github.io/git-novice/).
+
 ## Styleguides
 
 ### Git Commit Messages
