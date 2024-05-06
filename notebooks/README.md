@@ -8,4 +8,3 @@ We use the following naming convention for notebooks (inspired by [cookiecutter-
 ```<step>_<initials>_<description>.ipynb```
 
 For example, for `Tom Baker Adams` a valid name would be `1.0_tba_data-analysis.ipynb`. 
-```
