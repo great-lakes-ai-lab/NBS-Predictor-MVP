@@ -19,23 +19,31 @@ Before diving in, make sure you have the following installed on your system:
 
 ### Clone the Repository
 
-Begin by cloning the repository to your local machine:
+Begin by cloning the repository to your local machine and navigate into the project directory:
 
 ```bash
 git clone https://github.com/CIGLR-ai-lab/NBS-Predictor-MVP.git
+cd NBS-Predictor-MVP
 ```
 
 ### Create a Virtual Environment
 
-Next, create a virtual environment named `env` using `virtualenv`:
+Create a virtual environment within the project directory to isolate the project's dependencies:
 
-```bash
+For Unix-like systems and Windows:
+```
 virtualenv env
+```
+
+Or if you prefer to use 'venv' which is included in Python 3.3 and later:
+```
+python3 -m venv env  # For Unix-like systems
+python -m venv env   # For Windows
 ```
 
 ### Activate the Virtual Environment
 
-Activate your virtual environment:
+Activate your virtual environment accordingly:
 
 - **Linux/Mac:**
 
@@ -52,12 +60,29 @@ Activate your virtual environment:
 ### Install Required Packages
 
 Install the necessary packages using `pip`:
-
 ```bash
-pip install -r requirements.txt
+pip install -r requirements/requirements.txt
 ```
 
-### Build Instructions (Optional)
+There are alternative packages for development, as some packages will not be needed at runtime:
+```bash
+pip install -r requirements/dev-requirements.txt
+```
+
+And there are alternative packages for testing as well:
+```bash
+pip install -r requirements/test-requirements.txt
+```
+
+### Deactivate the Virtual Environment
+
+When you have finished working with the project, or if you need to return to your global Python environment, you can deactivate the virtual environment by running the following command:
+
+```bash
+deactivate
+```
+
+### Build Instructions (Optional, UNDER DEVELOPMENT)
 
 We provide a Makefile to streamline the project's development workflow, which is optional. You can use the Makefile to simplify the setup process and automate routine tasks. If you prefer using the Makefile, follow these steps:
 
@@ -74,7 +99,7 @@ We provide a Makefile to streamline the project's development workflow, which is
    Install the required packages using `pip`:
 
    ```bash
-   pip install -r requirements.txt
+    pip install -r requirements/requirements.txt
    ```
 
 3. **Activate the Virtual Environment**
