@@ -118,7 +118,7 @@ def camel_to_snake(name):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
 
-def parse_file(filepath, conn, schema="ciglr"):
+def parse_file(filepath, conn, schema="ciglr", **kwargs):
     """
     Wrapper to pass files to the appropriate parsing function based on the name of the file.
 
@@ -134,4 +134,4 @@ def parse_file(filepath, conn, schema="ciglr"):
     else:
         df, tbl_name = parse_type_2(filepath)
 
-    df.to_sql(con=conn, name=tbl_name, schema=schema, if_exists="replace")
+    df.to_sql(con=conn, name=tbl_name, schema=schema, **kwargs)
