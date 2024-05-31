@@ -9,6 +9,6 @@ def environ():
     os.environ["DB_DATABASE"] = "noaa"
     os.environ["DB_HOST"] = "localhost"
     os.environ["DB_PORT"] = "5432"
-    os.environ["DB_USER"] = "mcanearm"
+    os.environ["DB_USER"] = "ciglr"  # test user created
     yield os.environ
     os.environ = old_environ
