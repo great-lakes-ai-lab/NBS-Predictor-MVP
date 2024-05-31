@@ -1,7 +1,7 @@
 import pytest
 
 from src.step1_data_loading.db_utils import get_dsn
-from src.step1_data_loading.data_loading import Runoff, superior
+from src.step1_data_loading.data_loading import Runoff
 from sqlalchemy import create_engine, text, select
 
 import pandas as pd
