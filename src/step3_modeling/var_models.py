@@ -123,10 +123,6 @@ class VAR(NumpyroModel):
             for i in range(len(lags.items())):
                 alphas = covar_alphas[i]
                 dataset = lagged_series[i]
-                # if alphas.shape[-1] == 1:
-                #     m += jnp.matmul(alphas, dataset)
-                # else:
-                # switch to reduce
                 for j in jnp.arange(alphas.shape[-1]):
                     m += jnp.matmul(alphas[:, :, j], dataset[j, :])
 
