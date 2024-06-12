@@ -1,6 +1,8 @@
 import numpy as np
 import xarray
 
+__all__ = ["convert_to_labels", "save_model", "get_exceedance_prob"]
+
 
 def convert_to_labels(probabilities, threshold=0.5):
     """

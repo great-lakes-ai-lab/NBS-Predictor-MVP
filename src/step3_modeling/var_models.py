@@ -13,6 +13,11 @@ from numpyro.infer.reparam import LocScaleReparam
 from src.step3_modeling.modeling import NumpyroModel
 from src.utils import lag_vector
 
+__all__ = [
+    # Classes
+    "VAR",
+]
+
 
 class VAR(NumpyroModel):
 

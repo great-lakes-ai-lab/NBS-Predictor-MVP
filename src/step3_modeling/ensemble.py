@@ -3,6 +3,12 @@ import xarray as xr
 from src.step3_modeling.modeling import ModelBase
 
 
+__all__ = [
+    # Classes
+    "DefaultEnsemble",
+]
+
+
 class DefaultEnsemble(ModelBase):
 
     @property

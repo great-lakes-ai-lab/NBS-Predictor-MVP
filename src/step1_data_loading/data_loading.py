@@ -11,6 +11,11 @@ from resources.ciglr import (
 )
 from functools import partial, reduce
 
+__all__ = [
+    "load_data",
+]
+
+
 default_reader = partial(pd.read_csv, index_col="Date", date_format="%Y%m%d")
 
 # map the reader function to a specific series name. When requested,
@@ -27,28 +32,15 @@ series_map = {
 column_order = ["sup", "mic_hur", "eri", "ont"]
 
 
-def convert_lake_df_to_xarray(lake_df, **kwargs):
-    """
-    Small helper function to turn the default CSV file format to a Data array with proper dimensions, namely
-    date for the rows and lake for the columns
-    Args:
-        lake_df: The dataframe with date as the rows and lakes as the columns
-        **kwargs: Keyword options to be passed to xr.DataArray - primarily used to set the name of the series
-    Returns:
-
-    """
-    return xr.DataArray(
-        lake_df,
-        **kwargs,
-        dims=["Date", "lake"],
-        coords={"Date": lake_df.index, "lake": column_order}
-    )
-
-
 def read_series(series):
     read_fn, path = series_map[series]
     df = read_fn(path)[column_order]
-    return xr.DataArray(df, dims=["Date", "lake"], coords={"Date": df.index, "lake": df.columns}, name=series)
+    return xr.DataArray(
+        df,
+        dims=["Date", "lake"],
+        coords={"Date": df.index, "lake": df.columns},
+        name=series,
+    )
 
 
 def load_data(series: Union[str, List[str]]):

@@ -7,6 +7,12 @@ from numpyro import distributions as dist
 from src.step3_modeling.modeling import NumpyroModel
 
 
+__all__ = [
+    # Classes
+    "LakeMVT",
+]
+
+
 class LakeMVT(NumpyroModel):
 
     @property
