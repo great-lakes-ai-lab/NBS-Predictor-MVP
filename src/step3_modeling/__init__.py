@@ -1,2 +1,6 @@
 # Import the main functions from modeling.py
-from .modeling import split_data, train_model, evaluate_model
+from .modeling import *
+from .ensemble import *
+from .metrics import *
+from .multivariate import *
+from .var_models import *
