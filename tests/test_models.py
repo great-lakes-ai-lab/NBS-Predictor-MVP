@@ -8,6 +8,8 @@ from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
 from src.step3_modeling.var_models import VAR
 
+from tests.conftest import skip_tests
+
 modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
     "MVN": LakeMVT(num_warmup=0, num_samples=3, num_chains=1),
@@ -21,7 +23,7 @@ modelList = {
 }
 
 
-@pytest.mark.skipif(False, reason="Skip model fits")
+@pytest.mark.skipif(skip_tests, reason="Skip model fits")
 @pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
 def test_model_fit(model: ModelBase, snapshot):
     model.fit(y=snapshot.train_y, X=snapshot.train_x)
