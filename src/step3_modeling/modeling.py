@@ -241,7 +241,7 @@ def train_model(model: ModelBase, X_train, y_train, *args, **kwargs):
     Returns:
     - RandomForestClassifier: Trained model
     """
-    model.fit(y_train, X_train, *args, **kwargs)
+    model.fit(X=X_train, y=y_train, *args, **kwargs)
     return model
 
 
