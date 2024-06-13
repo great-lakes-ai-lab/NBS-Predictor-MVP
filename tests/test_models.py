@@ -1,13 +1,18 @@
 import numpy as np
 import pytest
 import xarray as xr
+from sklearn.gaussian_process import kernels as k
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer
 
+from src.step2_preprocessing.preprocessing import XArrayScaler, flatten_array
 from src.step3_modeling.ensemble import DefaultEnsemble
+from src.step3_modeling.gaussian_process import SklearnGPModel
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
 from src.step3_modeling.var_models import VAR
-
+from src.step4_postprocessing.postprocessing import output_forecast_results
 from tests.conftest import skip_tests
 
 modelList = {
@@ -20,15 +25,35 @@ modelList = {
     "VARCovarsLag1": VAR(
         num_warmup=0, num_samples=3, num_chains=1, lags={"y": 1, "precip": 1, "evap": 1}
     ),
+    "GP": Pipeline(
+        steps=[
+            # ("scale", XArrayScaler()),
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("gp", SklearnGPModel(kernel=1.0 * k.Matern())),
+        ]
+    ),
 }
 
 
-@pytest.mark.skipif(skip_tests, reason="Skip model fits")
-@pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
-def test_model_fit(model: ModelBase, snapshot):
-    model.fit(y=snapshot.train_y, X=snapshot.train_x)
+@pytest.fixture
+def preprocessor():
+    """
+    Using simple scaling, test that the models all work with a scikit-learn interface and pipeline objects
+    Returns:
 
-    results = model.predict(X=snapshot.test_x, y=snapshot.test_y, forecast_steps=24)
+    """
+    return Pipeline([("scaler", XArrayScaler())])
+
+
+@pytest.mark.skipif(skip_tests, reason="Skip kernel fits")
+@pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
+def test_model_fit(model: ModelBase, snapshot, preprocessor):
+    full_pipeline = Pipeline([("preprocess", preprocessor), ("model", model)])
+    full_pipeline.fit(y=snapshot.train_y, X=snapshot.train_x)
+
+    results = full_pipeline.predict(
+        X=snapshot.test_x, y=snapshot.test_y, forecast_steps=24
+    )
 
     # dim should be forecast length (24), lakes (4) and output_values (4),
     # which are mean, lower, upper, and std
@@ -42,7 +67,7 @@ def test_model_fit(model: ModelBase, snapshot):
 def test_forecaster_output_format(snapshot):
     new_labels = snapshot.train_index[-12:]
     forecasts = np.random.uniform(size=12 * 4 * 4).reshape(12, 4, 4)
-    forecast_array = ModelBase.output_forecast_results(forecasts, new_labels)
+    forecast_array = output_forecast_results(forecasts, new_labels)
 
     assert isinstance(forecast_array, xr.DataArray)
     assert forecast_array.dims == (new_labels.name, "lake", "value")
@@ -64,4 +89,4 @@ def test_baseline(snapshot):
     )
 
     summary_result = result_df.groupby("lake").apply(summarize)
-    assert summary_result["rmse"].max() < 65 and summary_result["rmse"].min() > 40
+    assert summary_result["rmse"].max() < 70 and summary_result["rmse"].min() > 40

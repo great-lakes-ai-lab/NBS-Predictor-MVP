@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 from src.step1_data_loading.data_loading import load_data
@@ -22,7 +23,7 @@ def snapshot(lake_data):
         data_subset.sel(variable="rnbs"),
         split_date="1980-01-01",
         sequential_validation=True,
-        validation_proportion=0.05,
+        validation_steps=12,
         covariates=data_subset.sel(variable=["runoff", "precip", "evap"]),
     )
     return snapshot

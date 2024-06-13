@@ -23,6 +23,7 @@ def test_snapshot(lake_data, split_date):
     assert local_snapshot.test_index.min() == local_snapshot.train_index.min()
 
 
+@pytest.mark.skip(reason="Deprecated")
 def test_snapshot_scaling(lake_data):
     local_snapshot = create_rnbs_snapshot(
         lake_data.sel(variable="rnbs"),

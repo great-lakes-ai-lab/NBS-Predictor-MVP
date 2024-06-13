@@ -1,5 +1,6 @@
-from src.step2_preprocessing.preprocessing import XArrayScaler
 from xarray.testing import assert_allclose
+
+from src.step2_preprocessing.preprocessing import XArrayScaler, flatten_array
 
 
 def test_default_scaling(lake_data):
@@ -18,3 +19,10 @@ def test_single_series_scaling(lake_data):
     scaled_xarray = scaler.fit_transform(subset)
 
     assert scaled_xarray.max() < subset.max()
+
+
+def test_flatten_df(lake_data):
+    flat_data = flatten_array(lake_data)
+
+    assert flat_data.shape[0] == lake_data.shape[0]
+    assert flat_data.shape[1] == 4 * lake_data.shape[-1]  # 4 lakes, then each variable

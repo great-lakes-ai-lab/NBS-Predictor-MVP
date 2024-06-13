@@ -35,7 +35,7 @@ class create_rnbs_snapshot(object):
         self,
         rnbs_data: Union[pd.Series, xr.DataArray],
         split_date: Union[int, str, dt.date, dt.datetime],
-        num_years_forward=0,
+        num_years_forward=1,
         covariates: Union[NDArray, torch.Tensor, xr.DataArray, None] = None,
         sequential_validation=True,
         validation_proportion=0.5,
@@ -114,42 +114,6 @@ class create_rnbs_snapshot(object):
         )
 
         self.test_x = self.covariates.loc[self.test_index]
-
-        self._x_transformer = None
-        self._y_transformer = None
-        self._is_transformed = False
-
-    def __iter__(self):
-        for item in [self.train_x, self.train_y, self.test_x, self.test_y, self.index]:
-            yield item
-
-    @property
-    def is_transformed(self):
-        return self._is_transformed
-
-    @property
-    def x_transformer(self):
-        return self._x_transformer
-
-    @property
-    def y_transformer(self):
-        return self._y_transformer
-
-    def apply_transformer(self, x_transformer=None, y_transformer=None):
-        if x_transformer:
-            self.train_x = x_transformer.fit_transform(self.train_x)
-            self.val_x = x_transformer.transform(self.val_x)
-            self.test_x = x_transformer.transform(self.test_x)
-
-        if y_transformer:
-            self.train_y = y_transformer.fit_transform(self.train_y)
-            self.val_y = y_transformer.transform(self.val_y)
-            self.test_y = y_transformer.transform(self.test_y)
-
-        self._x_transformer = x_transformer
-        self._y_transformer = y_transformer
-
-        return self
 
     def cuda(self):
         self.train_x = self.train_x.cuda()

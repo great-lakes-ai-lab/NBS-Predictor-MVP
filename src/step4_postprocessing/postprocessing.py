@@ -1,7 +1,14 @@
 import numpy as np
+import pandas as pd
 import xarray
+import xarray as xr
 
-__all__ = ["convert_to_labels", "save_model", "get_exceedance_prob"]
+__all__ = [
+    "convert_to_labels",
+    "save_model",
+    "get_exceedance_prob",
+    "output_forecast_results",
+]
 
 
 def convert_to_labels(probabilities, threshold=0.5):
@@ -33,3 +40,27 @@ def save_model(model, file_path):
 
 def get_exceedance_prob(prob, hist_rnbs: xarray.DataArray):
     pass
+
+
+def output_forecast_results(
+    array,
+    forecast_labels: pd.DatetimeIndex,
+    lakes=("sup", "mic_hur", "eri", "ont"),
+    **kwargs
+):
+    assert len(array.shape) == 3, "Dims must be forecast -> lake -> value"
+    if isinstance(lakes, tuple):
+        lakes = list(lakes)
+
+    results = xr.DataArray(
+        array,
+        coords={
+            "Date": forecast_labels,
+            "lake": lakes,
+            "value": ["mean", "lower", "upper", "std"],
+        },
+        dims=["Date", "lake", "value"],
+        name="forecasts",
+        attrs=kwargs,
+    )
+    return results
