@@ -6,7 +6,11 @@ from src.utils import create_rnbs_snapshot
 
 @pytest.fixture
 def lake_data():
-    return load_data(["rnbs", "runoff", "precip", "evap"])
+    return (
+        load_data(["rnbs", "runoff", "precip", "evap"])
+        .to_array()
+        .transpose("Date", "lake", ...)
+    )
 
 
 @pytest.fixture

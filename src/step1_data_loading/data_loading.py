@@ -170,9 +170,7 @@ def load_data(series: Union[str, List[str]]):
         return read_series(series)
     else:
         data = map(lambda j: read_series(j), series)
-        dataset = (
-            reduce(lambda a, x: xr.merge([a, x]), data)
-            .to_array()
-            .transpose("Date", "lake", ...)
+        dataset = reduce(lambda a, x: xr.merge([a, x]), data).transpose(
+            "Date", "lake", ...
         )
         return dataset

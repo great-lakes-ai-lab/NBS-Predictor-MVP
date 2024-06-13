@@ -14,6 +14,6 @@ def test_multi_series():
     series_list = list(series_map.keys())
     covars = load_data(series_list)
 
-    assert list(covars.indexes["variable"]) == series_list
-    assert isinstance(covars, xr.DataArray)
-    assert covars.dims[:2] == ("Date", "lake")
+    assert list(covars.data_vars) == series_list
+    assert isinstance(covars, xr.Dataset)
+    assert list(covars.dims)[:2] == ["Date", "lake"]
