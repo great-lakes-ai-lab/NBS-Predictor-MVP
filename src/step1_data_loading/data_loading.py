@@ -19,10 +19,12 @@ __all__ = [
     "load_data",
 ]
 
-default_reader = partial(pd.read_csv, index_col="Date", date_format="%Y%m%d")
-
-
 column_order = ["sup", "mic_hur", "eri", "ont"]
+
+
+def default_reader(path):
+    # FIXME: these methods depend heavily on the column order being correct
+    return pd.read_csv(path, index_col="Date", date_format="%Y%m%d")[column_order]
 
 
 def default_parser(df) -> xr.DataArray:
@@ -169,7 +171,7 @@ def load_data(series: Union[str, List[str]]):
     if isinstance(series, str):
         return read_series(series)
     else:
-        data = map(lambda j: read_series(j), series)
+        data = map(read_series, series)
         dataset = reduce(lambda a, x: xr.merge([a, x]), data).transpose(
             "Date", "lake", ...
         )
