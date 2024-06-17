@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from src.step1_data_loading.data_loading import load_data
@@ -6,7 +7,11 @@ from src.utils import create_rnbs_snapshot
 
 @pytest.fixture
 def lake_data():
-    return load_data(["rnbs", "runoff", "precip", "evap"])
+    return (
+        load_data(["rnbs", "runoff", "precip", "evap"])
+        .to_array()
+        .transpose("Date", "lake", ...)
+    )
 
 
 @pytest.fixture
@@ -21,3 +26,6 @@ def snapshot(lake_data):
         covariates=data_subset.sel(variable=["runoff", "precip", "evap"]),
     )
     return snapshot
+
+
+skip_tests = os.environ.get("SKIP_FITS", "true").lower() == "true"

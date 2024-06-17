@@ -1,19 +1,19 @@
 import pytest
 import xarray as xr
 
-from src.step1_data_loading.data_loading import load_data, read_series
+from src.step1_data_loading.data_loading import load_data, read_series, series_map
 
 
-@pytest.mark.parametrize("series", ["rnbs", "precip", "runoff", "evap", "water_level"])
+@pytest.mark.parametrize("series", series_map.keys())
 def test_single_series(series):
     df = read_series(series)
     assert isinstance(df, xr.DataArray)
 
 
 def test_multi_series():
-    series_list = ["rnbs", "precip", "runoff", "evap", "water_level"]
+    series_list = list(series_map.keys())
     covars = load_data(series_list)
 
-    assert list(covars.indexes["variable"]) == series_list
-    assert isinstance(covars, xr.DataArray)
-    assert covars.dims == ("Date", "lake", "variable")
+    assert list(covars.data_vars) == series_list
+    assert isinstance(covars, xr.Dataset)
+    assert list(covars.dims)[:2] == ["Date", "lake"]
