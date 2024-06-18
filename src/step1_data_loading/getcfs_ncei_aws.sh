@@ -1,4 +1,5 @@
 #/bin/bash
+#fun new comment
 
 basedir='/mnt/projects/hpc/mroczka/cyclones/cyclonetracking-master/data/CFS/monthly/'
 ncodir='/usr/bin/'
