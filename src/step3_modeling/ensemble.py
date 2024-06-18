@@ -36,10 +36,10 @@ class DefaultEnsemble(ModelBase):
         self.month_df = xr.concat([means, quantiles, std], dim="variable")
         return self
 
-    def predict(self, X, y, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
+    def predict(self, X, y=None, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
         # convert to DatetimeIndex type just in case for .month syntax
 
-        forecast_index = y.indexes["Date"][-forecast_steps:]
+        forecast_index = X.indexes["Date"][-forecast_steps:]
         forecasts = (
             self.month_df.sel(month=forecast_index.month)
             .rename(month="Date")
