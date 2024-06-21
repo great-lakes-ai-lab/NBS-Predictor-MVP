@@ -1,21 +1,24 @@
-import numpy as np
-from typing import Union
-from functools import reduce
-
 import calendar
+from functools import reduce
+from typing import Union
+
+import numpy as np
 import numpyro
+import xarray as xr
 from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro.contrib.control_flow import scan
-
 from numpyro.infer.reparam import LocScaleReparam
+from statsmodels.tsa.api import VAR as StatsVAR
 
-from src.step3_modeling.modeling import NumpyroModel
-from src.utils import lag_vector
+from src.step3_modeling.modeling import ModelBase, NumpyroModel
+from src.step4_postprocessing.postprocessing import output_forecast_results
+from src.utils import lag_array
 
 __all__ = [
     # Classes
     "VAR",
+    "StatsModelVAR",
 ]
 
 
@@ -75,7 +78,7 @@ class VAR(NumpyroModel):
 
     @staticmethod
     @numpyro.handlers.reparam(config={"intercept": LocScaleReparam(0)})
-    def model(y, y_index, lags, covariates=None, future=0):
+    def model(y, y_index, lags, covariates, future=0):
         """
         Autoregressive process.
         Args:
@@ -145,9 +148,9 @@ class VAR(NumpyroModel):
         max_lag = reduce(max, lags.values())
 
         lagged_covars = [
-            lag_vector(
-                jnp.array(covariates.sel(variable=covar)), np.arange(1, lag + 1)
-            )[max_lag:]
+            lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(1, lag + 1))[
+                max_lag:
+            ]
             for covar, lag in lags.items()
             if covar != "y"
         ]
@@ -164,3 +167,51 @@ class VAR(NumpyroModel):
 
         if future > 0:
             numpyro.deterministic("y_forecast", ys[-future:])
+
+
+class StatsModelVAR(ModelBase):
+
+    def __init__(
+        self, lag_order=None, lag_selection_criterion="bic", lag_selection_order=18
+    ):
+        self.lag_order = lag_order
+        self.lag_selection_criterion = lag_selection_criterion
+        self.selection_lag_order = lag_selection_order
+        self.model = None
+
+    def fit(self, X, y, *args, **kwargs):
+        model = StatsVAR(
+            endog=np.array(y),
+            exog=np.array(X),
+        )
+
+        if self.lag_order is None:
+            order_value = model.select_order(self.selection_lag_order).aic
+            self.lag_order = order_value
+
+        self.model = model.fit(self.lag_order)
+
+    def predict(self, X, y, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
+        exog_past, exog_future = X[:-forecast_steps], X[-forecast_steps:]
+        y_past = y.loc[exog_past.indexes["Date"]]
+
+        forecast_dates = exog_future.indexes["Date"]
+        mean, lower, upper = self.model.forecast_interval(
+            y_past, steps=forecast_steps, exog_future=exog_future
+        )
+        sd = (upper - mean) / 1.96
+
+        # order MUST be mean, lower, upper, sd
+        arrays = np.stack([mean, lower, upper, sd], axis=-1)
+        results = output_forecast_results(
+            arrays, forecast_labels=forecast_dates, lakes=y_past.indexes["lake"]
+        )
+
+        return results
+
+    def save(self, path):
+        pass
+
+    @classmethod
+    def load(cls, path):
+        pass

@@ -11,7 +11,7 @@ from src.step3_modeling.gaussian_process import SklearnGPModel
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
-from src.step3_modeling.var_models import VAR
+from src.step3_modeling.var_models import VAR, StatsModelVAR
 from src.step4_postprocessing.postprocessing import output_forecast_results
 from tests.conftest import skip_tests
 
@@ -33,6 +33,12 @@ modelList = {
             ("scale", XArrayScaler()),
             ("flatten", FunctionTransformer(flatten_array)),
             ("gp", SklearnGPModel(kernel=1.0 * k.Matern())),
+        ]
+    ),
+    "StatsModelVar": Pipeline(
+        steps=[
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("stat_var", StatsModelVAR()),
         ]
     ),
 }

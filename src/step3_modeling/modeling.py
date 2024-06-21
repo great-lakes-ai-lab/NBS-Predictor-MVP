@@ -135,7 +135,7 @@ class NumpyroModel(ModelBase):
 
     @staticmethod
     @abstractmethod
-    def model(y, y_index, lags, covariates, future):
+    def model(y, y_index, lags, covariates, future=0):
         """
         Model method. Must be static to work with Numpyro MCMC.
         Args:
