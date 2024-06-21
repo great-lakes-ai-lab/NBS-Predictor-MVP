@@ -1,7 +1,9 @@
+import calendar
+
 import pandas as pd
 import xarray as xr
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 
 class XArrayScaler(object):
@@ -84,3 +86,32 @@ def flatten_array(X: xr.DataArray, lead_dim="Date"):
 
     flattened_df.columns = ["_".join([*list(t)[1:]]) for t in flattened_df.columns]
     return xr.DataArray(flattened_df, dims=["Date", "variable"])
+
+
+class CreateMonthDummies(object):
+
+    def __init__(self, encoder=None):
+        self.encoder = encoder or OneHotEncoder(
+            categories="auto", sparse_output=False, drop=[1]
+        )
+
+    def fit(self, X: xr.DataArray, y=None):
+        months = X.indexes["Date"].month.values.reshape(-1, 1)
+        self.encoder.fit(months)
+
+    def transform(self, X: xr.DataArray, y=None):
+        months = X.indexes["Date"].month.values.reshape(-1, 1)
+        month_dummies = self.encoder.transform(months)
+
+        drop_categories = self.encoder.get_params().get("drop") or []
+
+        coords = {
+            "Date": X.indexes["Date"],
+            "month": [
+                calendar.month_abbr[i]
+                for i in self.encoder.categories_[0]
+                if i not in drop_categories
+            ],
+        }
+
+        return xr.DataArray(month_dummies, dims=["Date", "month"], coords=coords)

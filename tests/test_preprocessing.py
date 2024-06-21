@@ -1,6 +1,11 @@
 from xarray.testing import assert_allclose
+import xarray as xr
 
-from src.step2_preprocessing.preprocessing import XArrayScaler, flatten_array
+from src.step2_preprocessing.preprocessing import (
+    XArrayScaler,
+    flatten_array,
+    CreateMonthDummies,
+)
 
 
 def test_default_scaling(lake_data):
@@ -19,6 +24,15 @@ def test_single_series_scaling(lake_data):
     scaled_xarray = scaler.fit_transform(subset)
 
     assert scaled_xarray.max() < subset.max()
+
+
+def test_month_dummies(lake_data):
+    enc = CreateMonthDummies()
+    enc.fit(lake_data)
+    months = enc.transform(lake_data)
+
+    assert months.shape[1] == 11
+    assert isinstance(months, xr.DataArray)
 
 
 def test_flatten_df(lake_data):
