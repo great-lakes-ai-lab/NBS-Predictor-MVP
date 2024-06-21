@@ -1,14 +1,14 @@
 import datetime as dt
 import logging
-from functools import partial, reduce
+from functools import partial, reduce, singledispatch
 from typing import Union
 
 import numpy as np
-from jax import numpy as jnp
 import pandas as pd
 import torch
 import xarray as xr
 from dateutil.relativedelta import relativedelta
+from jax import numpy as jnp
 from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
@@ -153,6 +153,31 @@ def acf(x, max_lag=20):
     ).set_index("index")
 
 
+@singledispatch
+def lag_array(x: np.typing.NDArray, lags=(1,)):
+    lag_vals = [
+        np.concatenate(
+            [np.repeat(np.nan, 4).reshape(-1, 4).repeat(i, axis=0), x[:-i]], axis=0
+        )
+        for i in lags
+    ]
+    values = np.stack(lag_vals, axis=len(x.shape))
+    return values
+
+
+@lag_array.register(jnp.ndarray)
+def lag_jnp_array(x: jnp.ndarray, lags=(1,)):
+    lag_vals = [
+        jnp.concatenate(
+            [jnp.repeat(jnp.nan, 4).reshape(-1, 4).repeat(i, axis=0), x[:-i]], axis=0
+        )
+        for i in lags
+    ]
+    values = jnp.stack(lag_vals, axis=len(x.shape))
+    return values
+
+
+@lag_array.register(pd.Series)
 def lag_series(x: pd.Series, lags=(1)):
     """Create a lagged vector from a given series. Currently only works on named series.
     Args:
@@ -179,23 +204,7 @@ def lag_series(x: pd.Series, lags=(1)):
     return lagged_var
 
 
-def lag_vector(x: Union[pd.Series, np.array], lags=(1)):
-
-    fn_lookup = {pd.Series: lag_series, np.ndarray: lag_array, xr.DataArray: lag_xarray}
-    return fn_lookup.get(x.__class__, lag_array)(x, lags)
-
-
-def lag_array(x: jnp.array, lags=(1)):
-    lag_vals = [
-        jnp.concatenate(
-            [jnp.repeat(np.nan, 4).reshape(-1, 4).repeat(i, axis=0), x[:-i]], axis=0
-        )
-        for i in lags
-    ]
-    values = jnp.stack(lag_vals, axis=len(x.shape))
-    return values
-
-
+@lag_array.register(xr.DataArray)
 def lag_xarray(x: xr.DataArray, lags=(1)):
     lag_vect = [x.shift(Date=j).rename(f"lag_{j}") for j in lags]
 
