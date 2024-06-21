@@ -68,26 +68,6 @@ def scale_features(data):
     )
 
 
-def flatten_array(X: xr.DataArray, lead_dim="Date"):
-
-    # remove any variables/dimensions not found in both the dims and coordinates
-    drop_dims = set(X.dims).symmetric_difference(X.coords.keys())
-
-    X_subset = X.drop(drop_dims)
-    # unless stated otherwise, the first dimension is the one to collapse into
-    flatten_dims = [d for d in X_subset.dims if d != lead_dim]
-
-    flattened_df = (
-        X_subset.rename("flattened")
-        .to_dataframe(dim_order=[lead_dim, *flatten_dims])
-        .reset_index()
-        .pivot(index=lead_dim, columns=flatten_dims)
-    )
-
-    flattened_df.columns = ["_".join([*list(t)[1:]]) for t in flattened_df.columns]
-    return xr.DataArray(flattened_df, dims=["Date", "variable"])
-
-
 class CreateMonthDummies(object):
 
     def __init__(self, encoder=None):

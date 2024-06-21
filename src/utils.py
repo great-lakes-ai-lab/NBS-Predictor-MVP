@@ -13,6 +13,18 @@ from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "convert_year_to_date",
+    "percentile",
+    "filter_model_results",
+    "acf",
+    "lag_array",
+    "setup_logger",
+    "flatten_array",
+    "create_rnbs_snapshot",
+    "ContextFilter",
+]
+
 
 def convert_year_to_date(year: Union[str, int, dt.date]):
     if isinstance(year, str):
@@ -212,7 +224,7 @@ def lag_xarray(x: xr.DataArray, lags=(1)):
         lag_vect,
         dims=["lags", *x.dims],
         coords={"lags": list(lags), **x.coords},
-    ).transpose("Date", ...)
+    ).transpose(*x.dims, "lags")
 
     return lagged_data
 
@@ -245,3 +257,36 @@ class ContextFilter(logging.Filter):
     def filter(self, record):
         record.lake = self.lake
         return True
+
+
+@singledispatch
+def flatten_array(X: xr.DataArray, lead_dim="Date"):
+
+    # remove any variables/dimensions not found in both the dims and coordinates
+    drop_dims = set(X.dims).symmetric_difference(X.coords.keys())
+
+    X_subset = X.drop(drop_dims) if drop_dims else X
+    # unless stated otherwise, the first dimension is the one to collapse into
+    flatten_dims = [d for d in X_subset.dims if d != lead_dim]
+
+    flattened_df = (
+        X_subset.rename("flattened")
+        .to_dataframe(dim_order=[lead_dim, *flatten_dims])
+        .reset_index()
+        .pivot(index=lead_dim, columns=flatten_dims)
+    )
+
+    flattened_df.columns = [
+        "_".join([str(_) for _ in t if _ != "flattened"]) for t in flattened_df.columns
+    ]
+    return xr.DataArray(flattened_df, dims=["Date", "variable"])
+
+
+@flatten_array.register(jnp.ndarray)
+def flatten_np_array(X: jnp.ndarray, lead_dim="Date"):
+    return X.reshape(X.shape[0], -1)
+
+
+@flatten_array.register(np.ndarray)
+def flatten_np_array(X: np.typing.NDArray, lead_dim="Date"):
+    return X.reshape(X.shape[0], -1)

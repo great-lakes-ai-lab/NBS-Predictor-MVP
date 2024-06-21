@@ -3,9 +3,9 @@ import xarray as xr
 
 from src.step2_preprocessing.preprocessing import (
     XArrayScaler,
-    flatten_array,
     CreateMonthDummies,
 )
+from src.utils import flatten_array
 
 
 def test_default_scaling(lake_data):

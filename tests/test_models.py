@@ -5,9 +5,10 @@ from sklearn.gaussian_process import kernels as k
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
-from src.step2_preprocessing.preprocessing import XArrayScaler, flatten_array
+from src.step2_preprocessing.preprocessing import XArrayScaler
+from src.utils import flatten_array
 from src.step3_modeling.ensemble import DefaultEnsemble
-from src.step3_modeling.gaussian_process import SklearnGPModel
+from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedGPModel
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
@@ -41,6 +42,12 @@ modelList = {
             ("stat_var", StatsModelVAR()),
         ]
     ),
+    "LaggedGP": Pipeline(
+        steps=[
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("lagged_gp", LaggedGPModel()),
+        ]
+    ),
 }
 
 
@@ -57,12 +64,13 @@ def preprocessor():
 @pytest.mark.skipif(skip_tests, reason="Skip kernel fits")
 @pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
 def test_model_fit(model: ModelBase, snapshot, preprocessor):
+    y_scaler = XArrayScaler()
+    train_y = y_scaler.fit_transform(snapshot.train_y)
+    test_y = y_scaler.transform(snapshot.test_y)
     full_pipeline = Pipeline([("preprocess", preprocessor), ("model", model)])
-    full_pipeline.fit(y=snapshot.train_y, X=snapshot.train_x)
+    full_pipeline.fit(y=train_y, X=snapshot.train_x)
 
-    results = full_pipeline.predict(
-        X=snapshot.test_x, y=snapshot.test_y, forecast_steps=24
-    )
+    results = full_pipeline.predict(X=snapshot.test_x, y=test_y, forecast_steps=24)
 
     # dim should be forecast length (24), lakes (4) and output_values (4),
     # which are mean, lower, upper, and std
