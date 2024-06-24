@@ -95,3 +95,36 @@ class CreateMonthDummies(object):
         }
 
         return xr.DataArray(month_dummies, dims=["Date", "month"], coords=coords)
+
+
+class XArrayAdapter(object):
+
+    def __init__(self, sklearn_preprocessor, feature_prefix="f"):
+        super().__init__()
+        self.sklearn_preprocessor = sklearn_preprocessor
+        self.feature_prefix = feature_prefix
+
+    def fit(self, X: xr.DataArray, y=None):
+        self.sklearn_preprocessor.fit(X, y)
+
+    def transform(self, X: xr.DataArray, y=None) -> xr.DataArray:
+        """
+        Runs the transform method of the sklearn preprocessor, but returns
+        the coordinates and dimensions of the original data. Note that this assumes that new
+        dimensions / columns are not created
+        """
+        transformed_X = self.sklearn_preprocessor.transform(X)
+        return xr.DataArray(
+            transformed_X,
+            coords={
+                "Date": X.coords["Date"],
+                "variable": [
+                    f"{self.feature_prefix}_{i}" for i in range(transformed_X.shape[1])
+                ],
+            },
+            dims=["Date", "variable"],
+        )
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X, y)
+        return self.transform(X)

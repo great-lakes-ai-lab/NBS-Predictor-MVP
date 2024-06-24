@@ -1,15 +1,18 @@
 from abc import abstractmethod, ABC
 
 import arviz as az
+import numpy as np
 import xarray as xr
 from jax import numpy as jnp
 from jax.random import PRNGKey
 from numpyro.diagnostics import hpdi
 from numpyro.infer import NUTS, MCMC, Predictive
+from sklearn.ensemble import BaggingRegressor
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
-from src.step4_postprocessing.postprocessing import output_forecast_results
+from src.step4_postprocessing import output_forecast_results
 
 __all__ = [
     # Classes
@@ -231,3 +234,44 @@ def evaluate_model(model, X_test, y_test):
     """
     y_pred = model.predict(None, X_test)
     return accuracy_score(y_test, y_pred)
+
+
+class SklearnRegressorModel(ModelBase):
+    """
+    Take any given Sklearn regressor model and wrap it into a BaggedRegressor to
+    get a simple empirical estimate of standard deviation and quantile of predictions
+    """
+
+    def __init__(self, sklearn_regressor=None, **bagging_kwargs):
+        super().__init__()
+        self.regressor = sklearn_regressor or LinearRegression()
+        bagging_kwargs = bagging_kwargs or {"n_estimators": 250, "n_jobs": -1}
+        self.model = BaggingRegressor(estimator=self.regressor, **bagging_kwargs)
+
+    def fit(self, X, y, **kwargs):
+        self.model.fit(X, y)
+
+    def predict(
+        self, X, y, forecast_steps=12, alpha=0.05, *args, **kwargs
+    ) -> xr.DataArray:
+        predictions = np.stack([m.predict(X) for m in self.model.estimators_], axis=-1)
+
+        output_array = np.stack(
+            [
+                predictions.mean(axis=-1),
+                *np.quantile(predictions, q=[alpha / 2, 1 - alpha / 2], axis=-1),
+                predictions.std(axis=-1),
+            ],
+            axis=-1,
+        )[-forecast_steps:]
+
+        return output_forecast_results(
+            output_array, forecast_labels=X.indexes["Date"][-forecast_steps:]
+        )
+
+    def save(self, path):
+        pass
+
+    @classmethod
+    def load(cls, path):
+        pass

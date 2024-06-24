@@ -10,9 +10,10 @@ from src.utils import flatten_array
 from src.step3_modeling.ensemble import DefaultEnsemble
 from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedGPModel
 from src.step3_modeling.metrics import summarize
-from src.step3_modeling.modeling import ModelBase
+from src.step3_modeling.modeling import ModelBase, SklearnRegressorModel
 from src.step3_modeling.multivariate import LakeMVT
 from src.step3_modeling.var_models import VAR, StatsModelVAR
+from src.step3_modeling.nn import BayesNN
 from src.step4_postprocessing.postprocessing import output_forecast_results
 from tests.conftest import skip_tests
 
@@ -46,6 +47,18 @@ modelList = {
         steps=[
             ("flatten", FunctionTransformer(flatten_array)),
             ("lagged_gp", LaggedGPModel()),
+        ]
+    ),
+    "SklearnRegressor": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("nnet", SklearnRegressorModel()),
+        ]
+    ),
+    "BayesNN": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("nnet", BayesNN(num_warmup=0, num_samples=3, num_chains=1)),
         ]
     ),
 }
