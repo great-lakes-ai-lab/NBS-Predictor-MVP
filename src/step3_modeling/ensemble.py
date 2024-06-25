@@ -1,7 +1,7 @@
 import xarray as xr
 
 from src.step3_modeling.modeling import ModelBase
-
+from src.step4_postprocessing.postprocessing import output_forecast_results
 
 __all__ = [
     # Classes
@@ -22,17 +22,18 @@ class DefaultEnsemble(ModelBase):
         self.lakes = ["sup", "mic_hur", "eri", "ont"]
 
     def fit(self, X, y, *args, **kwargs):
-        means = y.groupby("Date.month").mean().rename("mean")
         quantiles = (
             y.groupby("Date.month")
-            .quantile(q=[self.alpha / 2, 1 - self.alpha / 2])
-            .rename(quantile="variable")
+            .quantile(
+                q=[self.alpha / 2, 1 - self.alpha / 2],
+            )
+            .assign_coords({"quantile": ["lower", "upper"]})
+            .rename({"quantile": "variable"})
         )
-        std = y.groupby("Date.month").std().rename("std")
+        means = y.groupby("Date.month").mean().expand_dims(variable=["mean"])
+        std = y.groupby("Date.month").std().expand_dims(variable=["std"])
 
-        self.month_df = xr.concat(
-            [means, quantiles, std], dim="variable"
-        ).assign_coords(variable=["mean", "lower", "uppder", "std"])
+        self.month_df = xr.concat([means, quantiles, std], dim="variable")
         return self
 
     def predict(self, X, y, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
@@ -46,7 +47,7 @@ class DefaultEnsemble(ModelBase):
             .transpose("Date", "lake", "variable")
         )
 
-        formatted_output = self.output_forecast_results(forecasts, forecast_index)
+        formatted_output = output_forecast_results(forecasts, forecast_index)
         return formatted_output
 
     def save(self, path):

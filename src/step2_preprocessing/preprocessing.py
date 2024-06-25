@@ -1,8 +1,7 @@
-from typing import Union
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-import xarray as xr
 import pandas as pd
+import xarray as xr
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
 
 
 class XArrayScaler(object):
@@ -15,7 +14,7 @@ class XArrayScaler(object):
         self.dims = None
         self.coords = None
 
-    def fit(self, X: xr.DataArray):
+    def fit(self, X: xr.DataArray, y=None):
         assert X.dims[0] == "Date"
         self.series_dim = X.dims[-1]  # iterate over the last dim
 
@@ -24,14 +23,14 @@ class XArrayScaler(object):
 
         self.is_fitted = True
 
-    def transform(self, X: xr.DataArray):
+    def transform(self, X: xr.DataArray, y=None):
         return (X - self.means) / self.std
 
-    def fit_transform(self, X: xr.DataArray):
+    def fit_transform(self, X: xr.DataArray, y=None):
         self.fit(X)
         return self.transform(X)
 
-    def inverse_transform(self, X: xr.DataArray):
+    def inverse_transform(self, X: xr.DataArray, y=None):
         return X * self.std + self.means
 
 
@@ -65,3 +64,23 @@ def scale_features(data):
     return pd.DataFrame(
         data_scaled, columns=data.select_dtypes(include=["float64", "int64"]).columns
     )
+
+
+def flatten_array(X: xr.DataArray, lead_dim="Date"):
+
+    # remove any variables/dimensions not found in both the dims and coordinates
+    drop_dims = set(X.dims).symmetric_difference(X.coords.keys())
+
+    X_subset = X.drop(drop_dims)
+    # unless stated otherwise, the first dimension is the one to collapse into
+    flatten_dims = [d for d in X_subset.dims if d != lead_dim]
+
+    flattened_df = (
+        X_subset.rename("flattened")
+        .to_dataframe(dim_order=[lead_dim, *flatten_dims])
+        .reset_index()
+        .pivot(index=lead_dim, columns=flatten_dims)
+    )
+
+    flattened_df.columns = ["_".join([*list(t)[1:]]) for t in flattened_df.columns]
+    return xr.DataArray(flattened_df, dims=["Date", "variable"])

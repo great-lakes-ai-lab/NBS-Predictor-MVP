@@ -1,15 +1,15 @@
 from abc import abstractmethod, ABC
 
 import arviz as az
-import pandas as pd
 import xarray as xr
-from dateutil.relativedelta import relativedelta
 from jax import numpy as jnp
 from jax.random import PRNGKey
 from numpyro.diagnostics import hpdi
 from numpyro.infer import NUTS, MCMC, Predictive
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+
+from src.step4_postprocessing.postprocessing import output_forecast_results
 
 __all__ = [
     # Classes
@@ -58,34 +58,6 @@ class ModelBase(ABC):
     def load(cls, path):
         pass
 
-    @staticmethod
-    def output_forecast_results(
-        array, forecast_labels, lakes=["sup", "mic_hur", "eri", "ont"]
-    ):
-        assert len(array.shape) == 3, "Dims must be forecast -> lake -> value"
-        results = xr.DataArray(
-            array,
-            coords={
-                "Date": forecast_labels,
-                "lake": lakes,
-                "value": ["mean", "lower", "upper", "std"],
-            },
-            dims=["Date", "lake", "value"],
-            name="forecasts",
-        )
-        return results
-
-    @staticmethod
-    def construct_index_labels(y_index, num_steps_forward):
-        forecast_index = pd.DatetimeIndex(
-            [
-                y_index.max() + relativedelta(months=j)
-                for j in range(1, num_steps_forward + 1)
-            ],
-            name=y_index.name,
-        )
-        return forecast_index
-
 
 class NumpyroModel(ModelBase):
 
@@ -101,7 +73,7 @@ class NumpyroModel(ModelBase):
         self.num_chains = num_chains
         self.num_samples = num_samples
         self.num_warmup = num_warmup
-        self.predictive_fn = None  # updated during model fitting
+        self.predictive_fn = None  # updated during kernel fitting
         self.trace = None
         self.mcmc = None
         self.lakes = None
@@ -135,7 +107,7 @@ class NumpyroModel(ModelBase):
             y_index: The datetime index for the series
             X: Extra X variables that can be passed in as predictors at fitting time
         Returns:
-            fitted model object
+            fitted kernel object
         """
         self.lakes, y_index = y.indexes["lake"], y.indexes["Date"]
 
@@ -178,7 +150,7 @@ class NumpyroModel(ModelBase):
         """
         pass
 
-    def predict(self, X, y, rng_key=None, forecast_steps=12, *args, **kwargs):
+    def predict(self, X, y=None, rng_key=None, forecast_steps=12, *args, **kwargs):
         """
 
         Args:
@@ -210,7 +182,7 @@ class NumpyroModel(ModelBase):
 
         forecasts = jnp.stack([mean, low, high, std], axis=2)
 
-        results = self.output_forecast_results(forecasts, y_index[-forecast_steps:])
+        results = output_forecast_results(forecasts, y_index[-forecast_steps:])
         return results
 
 
@@ -239,7 +211,7 @@ def train_model(model: ModelBase, X_train, y_train, *args, **kwargs):
     - y_train (pd.Series): Training target
 
     Returns:
-    - RandomForestClassifier: Trained model
+    - RandomForestClassifier: Trained kernel
     """
     model.fit(X=X_train, y=y_train, *args, **kwargs)
     return model
@@ -247,10 +219,10 @@ def train_model(model: ModelBase, X_train, y_train, *args, **kwargs):
 
 def evaluate_model(model, X_test, y_test):
     """
-    Evaluate a model using accuracy score.
+    Evaluate a kernel using accuracy score.
 
     Args:
-    - model: Trained model
+    - kernel: Trained kernel
     - X_test (pd.DataFrame): Test features
     - y_test (pd.Series): Test target
 
