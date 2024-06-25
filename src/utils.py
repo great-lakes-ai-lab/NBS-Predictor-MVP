@@ -169,7 +169,11 @@ def acf(x, max_lag=20):
 def lag_array(x: np.typing.NDArray, lags=(1,)):
     lag_vals = [
         np.concatenate(
-            [np.repeat(np.nan, 4).reshape(-1, 4).repeat(i, axis=0), x[:-i]], axis=0
+            [
+                np.repeat(np.nan, 4).reshape(-1, 4).repeat(i, axis=0),
+                x[:-i] if i != 0 else x,
+            ],
+            axis=0,
         )
         for i in lags
     ]

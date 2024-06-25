@@ -99,4 +99,4 @@ def test_lag_array(lake_data):
     my_data = lake_data.sel(variable="rnbs_hist")[:10]
     lagged_data = lag_array(my_data, lags=(1, 2, 3))
 
-    assert lagged_data.shape == (10, 3, 4)
+    assert lagged_data.shape == (10, 4, 3)
