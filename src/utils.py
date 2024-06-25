@@ -180,8 +180,14 @@ def lag_array(x: np.typing.NDArray, lags=(1,)):
 @lag_array.register(jnp.ndarray)
 def lag_jnp_array(x: jnp.ndarray, lags=(1,)):
     lag_vals = [
-        jnp.concatenate(
-            [jnp.repeat(jnp.nan, 4).reshape(-1, 4).repeat(i, axis=0), x[:-i]], axis=0
+        (
+            jnp.concatenate(
+                [
+                    jnp.repeat(jnp.nan, 4).reshape(-1, 4).repeat(i, axis=0),
+                    x[:-i] if i != 0 else x,
+                ],
+                axis=0,
+            )
         )
         for i in lags
     ]

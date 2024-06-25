@@ -94,9 +94,22 @@ class VAR(NumpyroModel):
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
         nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
 
+        ar_lag = lags.get("y")
+        max_lag = reduce(max, lags.values())
+
+        lagged_covars = [
+            lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(0, lag))[
+                max_lag:
+            ]
+            for covar, lag in lags.items()
+            if covar != "y"
+        ]
+
         covar_alphas = [
             numpyro.sample(
-                f"{cov}_alpha", dist.Laplace(0, 0.2), sample_shape=(4, 4, lag)
+                f"{cov}_alpha",
+                dist.Laplace(0, 0.2),
+                sample_shape=(4, 4, lag),  # lag at 0
             )
             for cov, lag in lags.items()
         ]
@@ -111,8 +124,6 @@ class VAR(NumpyroModel):
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
         sigma = jnp.sqrt(theta)
         L_Omega = sigma[..., None] * l_omega
-
-        ar_lag = lags.get("y")
 
         def transition_fn(carry, covars):
             prev_y = carry
@@ -144,16 +155,6 @@ class VAR(NumpyroModel):
         months = jnp.array(y_index.month - 1)
         # need to subtract one because indexing starts at 0.
         initial_values = prev
-
-        max_lag = reduce(max, lags.values())
-
-        lagged_covars = [
-            lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(1, lag + 1))[
-                max_lag:
-            ]
-            for covar, lag in lags.items()
-            if covar != "y"
-        ]
 
         covars = (months[max_lag:], *lagged_covars)
 

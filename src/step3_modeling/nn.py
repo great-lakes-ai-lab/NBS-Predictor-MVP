@@ -25,7 +25,7 @@ class BayesNN(NumpyroModel):
     def model(y, y_index, lags, covariates, future=0):
 
         input_dim = covariates.shape[1]
-        h1 = 10
+        h1 = 8
         output_dim = 4
 
         nu = numpyro.sample("nu", dist.HalfNormal(4))
@@ -39,7 +39,7 @@ class BayesNN(NumpyroModel):
         # The weights and bias for the hidden layer
         w1 = numpyro.sample(
             "w1",
-            dist.Laplace(
+            dist.Normal(
                 jnp.zeros((input_dim, h1)),
                 1.0 * jnp.ones((input_dim, h1)),
             ),
@@ -49,7 +49,7 @@ class BayesNN(NumpyroModel):
         # The weights and bias for the output layer
         w2 = numpyro.sample(
             "w2",
-            dist.Laplace(
+            dist.Normal(
                 jnp.zeros((h1, output_dim)),
                 1.0 * jnp.ones((h1, output_dim)),
             ),
