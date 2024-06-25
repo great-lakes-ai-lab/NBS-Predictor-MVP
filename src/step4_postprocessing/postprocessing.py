@@ -1,14 +1,28 @@
 import numpy as np
-import pandas as pd
-import xarray
 import xarray as xr
+from scipy.stats import ecdf
+import pandas as pd
 
 __all__ = [
     "convert_to_labels",
     "save_model",
-    "get_exceedance_prob",
     "output_forecast_results",
+    "ExceedanceProbClosure",
+    "PostprocessingPipeline",
 ]
+
+
+class PostprocessingPipeline(object):
+
+    def __init__(self, steps):
+        self.steps = steps
+
+    def transform(self, y, *args, **kwargs):
+        predictions = y
+        for name, transformer in self.steps:
+            predictions = transformer.transform(predictions, *args, **kwargs)
+
+        return predictions
 
 
 def convert_to_labels(probabilities, threshold=0.5):
@@ -38,8 +52,46 @@ def save_model(model, file_path):
     joblib.dump(model, file_path)
 
 
-def get_exceedance_prob(prob, hist_rnbs: xarray.DataArray):
-    pass
+class ExceedanceProbClosure(object):
+
+    def __init__(
+        self,
+        hist_rnbs: xr.DataArray,
+        as_labels=False,
+        exceedance_thresholds=(0.25, 0.75),
+    ):
+        super().__init__()
+        self.quantile_fns = {
+            str(label): ecdf(arr.squeeze()) for label, arr in hist_rnbs.groupby("lake")
+        }
+        self.as_labels = as_labels
+        self.exceedance_thresholds = exceedance_thresholds
+
+    def transform(self, X, y=None, *args, **kwargs):
+        return self.__call__(X)
+
+    def __call__(self, x: xr.DataArray):
+
+        exceedances = xr.concat(
+            [
+                xr.DataArray(
+                    1 - self.quantile_fns[str(arr.lake.values)].cdf.evaluate(arr),
+                    dims=arr.dims,
+                    coords=arr.coords,
+                )
+                for arr in x.transpose("lake", ...)
+            ],
+            dim="lake",
+        ).transpose("Date", ...)
+
+        if self.as_labels:
+            # replace with labels if requested
+            exceedances = xr.where(
+                exceedances > self.exceedance_thresholds[0],
+                "Wet",
+                xr.where(exceedances > self.exceedance_thresholds[1], "Dry", "Normal"),
+            )
+        return exceedances
 
 
 def output_forecast_results(
