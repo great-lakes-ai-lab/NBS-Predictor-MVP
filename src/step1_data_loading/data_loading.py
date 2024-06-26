@@ -57,11 +57,7 @@ def parse_historical_files(df) -> xr.DataArray:
 class FileReader(object):
 
     def __init__(
-        self,
-        reader=read_historical_files,
-        parser=parse_historical_files,
-        series_name=None,
-        **metadata
+        self, reader=read_historical_files, parser=parse_historical_files, **metadata
     ):
         """
         Helper class to connect a particular CSV reader and an Xarray formatter. There are default
@@ -164,11 +160,7 @@ series_map = {
     "rnbs_hist": (FileReader(source="historical"), rnbs_hist_path),
     "precip_hist": (FileReader(source="historical"), precip_hist_path),
     "precip_cfsr": (
-        FileReader(
-            reader=read_cfsr_files,
-            parser=parse_cfsr_data,
-            source="CFSR",
-        ),
+        FileReader(reader=read_cfsr_files, parser=parse_cfsr_data, source="CFSR"),
         evap_cfsr_path,
     ),
     "evap_hist": (
@@ -176,11 +168,7 @@ series_map = {
         evap_hist_path,
     ),
     "evap_cfsr": (
-        FileReader(
-            reader=read_cfsr_files,
-            parser=parse_cfsr_data,
-            source="CFSR",
-        ),
+        FileReader(reader=read_cfsr_files, parser=parse_cfsr_data, source="CFSR"),
         evap_cfsr_path,
     ),
     "runoff_hist": (
@@ -190,10 +178,7 @@ series_map = {
     "water_level": (FileReader(source="historical"), water_level_hist_path),
     "temp_cfsr": (
         FileReader(
-            reader=read_cfsr_files,
-            parser=parse_cfsr_data,
-            source="CFSR",
-            units="K",
+            reader=read_cfsr_files, parser=parse_cfsr_data, source="CFSR", units="K"
         ),
         temp_cfsr_path,
     ),
