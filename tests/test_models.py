@@ -12,7 +12,7 @@ from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedGPModel
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase, SklearnRegressorModel
 from src.step3_modeling.multivariate import LakeMVT
-from src.step3_modeling.var_models import VAR, StatsModelVAR
+from src.step3_modeling.var_models import VAR, StatsModelVAR, NARX
 from src.step3_modeling.nn import BayesNN
 from src.step4_postprocessing.postprocessing import output_forecast_results
 from tests.conftest import skip_tests
@@ -21,10 +21,8 @@ modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
     "MVN": LakeMVT(num_warmup=0, num_samples=3, num_chains=1),
     "VAR": VAR(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2}),
-    "VARCovars": VAR(
-        num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip_hist": 2}
-    ),
-    "VARCovarsLag1": VAR(
+    "NARX": NARX(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip": 2}),
+    "VARX": VAR(
         num_warmup=0,
         num_samples=3,
         num_chains=1,

@@ -115,7 +115,7 @@ class NumpyroModel(ModelBase):
         self.lakes, y_index = y.indexes["lake"], y.indexes["Date"]
 
         if rng_key is None:
-            rng_key = PRNGKey(61)
+            rng_key = self.get_rng_key()
 
         y = jnp.array(y)
         kernel = NUTS(self.model)
@@ -166,7 +166,7 @@ class NumpyroModel(ModelBase):
         """
         y_index = y.indexes["Date"]
         if rng_key is None:
-            rng_key = PRNGKey(22)
+            rng_key = self.get_rng_key()
 
         # Using future, chop the last `num_steps_forward` values off and treat them as unknown. This allows
         # the covariates to align with the test set
@@ -187,6 +187,9 @@ class NumpyroModel(ModelBase):
 
         results = output_forecast_results(forecasts, y_index[-forecast_steps:])
         return results
+
+    def get_rng_key(self):
+        return PRNGKey(np.random.randint(1e3))
 
 
 def split_data(data, target_column):
