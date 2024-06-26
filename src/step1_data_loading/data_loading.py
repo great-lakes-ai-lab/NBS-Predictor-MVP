@@ -19,7 +19,7 @@ water_level_hist_path = DATA_DIR / "historical" / "wl_glcc.csv"
 
 
 # CFSR
-lhfx_cfsr_path = DATA_DIR / "CSFR" / "CFSR_LHFX_Basin_Avgs.csv"
+lhfx_cfsr_path = DATA_DIR / "CFSR" / "CFSR_LHFX_Basin_Avgs.csv"
 temp_cfsr_path = DATA_DIR / "CFSR" / "CFSR_TMP_Basin_Avgs.csv"
 evap_cfsr_path = DATA_DIR / "CFSR" / "CFSR_EVAP_Basin_Avgs.csv"
 precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
@@ -32,21 +32,11 @@ __all__ = [
 column_order = ["sup", "mic_hur", "eri", "ont"]
 
 
-def read_historical_files(path):
+def read_historical_files(path, reader_args=None) -> xr.DataArray:
     # FIXME: these methods depend heavily on the column order being correct
-    return pd.read_csv(path, index_col="Date", date_format="%Y%m%d")[column_order]
 
-
-def parse_historical_files(df) -> xr.DataArray:
-    """
-    Default parser for turning a particular pandas dataframe into an Xarray DataArray.
-    Args:
-        df: The output of a reader function (assumed, but not required to be the default reader)
-
-    Returns:
-        An Xarray dataset.
-
-    """
+    reader_args = reader_args or {"index_col": "Date", "date_format": "%Y%m%d"}
+    df = pd.read_csv(path, **reader_args)[column_order]
     return xr.DataArray(
         df,
         dims=["Date", "lake"],
@@ -56,9 +46,7 @@ def parse_historical_files(df) -> xr.DataArray:
 
 class FileReader(object):
 
-    def __init__(
-        self, reader=read_historical_files, parser=parse_historical_files, **metadata
-    ):
+    def __init__(self, reader=read_historical_files, **metadata):
         """
         Helper class to connect a particular CSV reader and an Xarray formatter. There are default
         options in use for files with 4 series, one for each lake. This allows for a custom
@@ -72,11 +60,10 @@ class FileReader(object):
         """
         super().__init__()
         self._reader = reader
-        self._parser = parser
         self.metadata = metadata or {}
 
     def __call__(self, path, series_name=None) -> xr.DataArray:
-        arr: xr.DataArray = self._parser(self._reader(path))
+        arr: xr.DataArray = self._reader(path)
         if series_name:
             arr = arr.rename(series_name)
         else:
@@ -84,7 +71,7 @@ class FileReader(object):
         return arr.assign_attrs(**self.metadata)
 
 
-def read_cfsr_files(path):
+def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
     """
     Read CSVs which have the format of {Type}{Lake} for each column. These consist of multiple columns for each lake.
     For example, each column in temperature is BasinSuperior, BasinErie, WaterMichigan, etc.
@@ -92,9 +79,11 @@ def read_cfsr_files(path):
         path: Path of the file to read in
 
     Returns:
-        A pandas dataframe, modified to be in a "long" format, i.e. Date -> lake -> value_type
+        An xarray.DataArray with dimensions 1 and 2 of Date and lake (respectively) followed by any other
+        dimensions, though generally this is "type", i.e. "Land", "Water", and "Basin".
     """
-    df = pd.read_csv(path)
+    reader_args = reader_args or {}
+    df = pd.read_csv(path, **reader_args)
 
     date_index = pd.Index(
         list(
@@ -116,27 +105,20 @@ def read_cfsr_files(path):
         index=melted_data.index,
         columns=["type", "lake"],
     )
-    array_data = melted_data.merge(new_cols, left_index=True, right_index=True).drop(
+    df = melted_data.merge(new_cols, left_index=True, right_index=True).drop(
         ["variable"], axis=1
     )
-    return array_data
 
-
-def parse_cfsr_data(df):
-    """
-    Parse the output of the CFSR file reader function into an xarray.DataArray.
-    Args:
-        df:
-
-    Returns:
-
-    """
-
+    # with the melted data in the DF (Date -> lake -> ...) convert to
+    # an Xarray
+    # loop over the groups ("Basin", "Land", "Lake") and format to match the format of Type I files.
     lake_arrays = []
     grps = []
     for grp, arr in df.groupby("type"):
         grps.append(grp)
         pivot_df = arr.pivot(columns="lake", values="value", index="Date")
+
+        # rename the columns to match the shortened names in all other arrays (maintaining order as well)
         array = (
             pivot_df.assign(mic_hur=pivot_df["Michigan"] + pivot_df["Huron"])
             .drop(["Michigan", "Huron"], axis=1)
@@ -160,7 +142,7 @@ series_map = {
     "rnbs_hist": (FileReader(source="historical"), rnbs_hist_path),
     "precip_hist": (FileReader(source="historical"), precip_hist_path),
     "precip_cfsr": (
-        FileReader(reader=read_cfsr_files, parser=parse_cfsr_data, source="CFSR"),
+        FileReader(reader=read_cfsr_files, source="CFSR"),
         evap_cfsr_path,
     ),
     "evap_hist": (
@@ -168,19 +150,26 @@ series_map = {
         evap_hist_path,
     ),
     "evap_cfsr": (
-        FileReader(reader=read_cfsr_files, parser=parse_cfsr_data, source="CFSR"),
+        FileReader(reader=read_cfsr_files, source="CFSR"),
         evap_cfsr_path,
     ),
     "runoff_hist": (
-        FileReader(reader=partial(pd.read_csv, date_format="%Y%m", index_col="Date")),
+        FileReader(
+            reader=partial(
+                read_historical_files,
+                reader_args={"date_format": "%Y%m", "index_col": "Date"},
+            )
+        ),
         runoff_hist_path,
     ),
     "water_level": (FileReader(source="historical"), water_level_hist_path),
     "temp_cfsr": (
-        FileReader(
-            reader=read_cfsr_files, parser=parse_cfsr_data, source="CFSR", units="K"
-        ),
+        FileReader(reader=read_cfsr_files, source="CFSR", units="K"),
         temp_cfsr_path,
+    ),
+    "lhfx_cfsr": (
+        FileReader(reader=read_cfsr_files, source="CFSR", units="K"),
+        lhfx_cfsr_path,
     ),
 }
 
