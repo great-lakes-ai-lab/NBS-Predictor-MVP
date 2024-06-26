@@ -35,7 +35,7 @@ class VAR(NumpyroModel):
     ):
         super().__init__()
         if lags is None:
-            self.lags = {"y": 3, "precip": 6}
+            self.lags = {"y": 3, "precip_hist": 6}
         else:
             self.lags = lags
         self.num_chains = num_chains

@@ -8,11 +8,8 @@ from src.utils import create_rnbs_snapshot
 
 @pytest.fixture
 def lake_data():
-    return (
-        load_data(["rnbs", "runoff", "precip", "evap"])
-        .to_array()
-        .transpose("Date", "lake", ...)
-    )
+    data = load_data(["rnbs_hist", "runoff_hist", "precip_hist", "evap_hist"])
+    return data.to_array().transpose("Date", "lake", ...)
 
 
 @pytest.fixture
@@ -20,11 +17,13 @@ def snapshot(lake_data):
 
     data_subset = lake_data.dropna("Date")
     snapshot = create_rnbs_snapshot(
-        data_subset.sel(variable="rnbs"),
-        split_date="1980-01-01",
+        data_subset.sel(variable="rnbs_hist"),
+        split_date="2000-01-01",
         sequential_validation=True,
         validation_steps=12,
-        covariates=data_subset.sel(variable=["runoff", "precip", "evap"]),
+        covariates=data_subset.sel(
+            variable=["runoff_hist", "precip_hist", "evap_hist"]
+        ),
     )
     return snapshot
 
