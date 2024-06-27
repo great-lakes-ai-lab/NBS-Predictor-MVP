@@ -1,20 +1,31 @@
 import datetime as dt
 import re
-from functools import partial, reduce
+from functools import partial
 from typing import List, Union
 
 import pandas as pd
 import xarray as xr
 
 from src.constants import (
-    runoff_path,
-    rnbs_path,
-    pcp_lake_path,
-    evap_lake_path,
-    water_level_path,
-    temp_path,
+    DATA_DIR,
 )
 
+# historical
+runoff_hist_path = DATA_DIR / "historical" / "runoff_glerl_mic_hur_combined.csv"
+rnbs_hist_path = DATA_DIR / "historical" / "rnbs_glcc.csv"
+precip_hist_path = DATA_DIR / "historical" / "pcp_glerl_lakes_mic_hur_combined.csv"
+evap_hist_path = DATA_DIR / "historical" / "evap_glerl_lakes_mic_hur_combined.csv"
+water_level_hist_path = DATA_DIR / "historical" / "wl_glcc.csv"
+
+
+# CFSR
+lhfx_cfsr_path = DATA_DIR / "CFSR" / "CFSR_LHFX_Basin_Avgs.csv"
+temp_cfsr_path = DATA_DIR / "CFSR" / "CFSR_TMP_Basin_Avgs.csv"
+evap_cfsr_path = DATA_DIR / "CFSR" / "CFSR_EVAP_Basin_Avgs.csv"
+precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
+
+
+# Only interact with the data through the load_data
 __all__ = [
     "load_data",
 ]
@@ -22,20 +33,25 @@ __all__ = [
 column_order = ["sup", "mic_hur", "eri", "ont"]
 
 
-def default_reader(path):
-    # FIXME: these methods depend heavily on the column order being correct
-    return pd.read_csv(path, index_col="Date", date_format="%Y%m%d")[column_order]
-
-
-def default_parser(df) -> xr.DataArray:
+def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
-    Default parser for turning a particular pandas dataframe into an Xarray DataArray.
+    Read in historical files. These have a simple format. For a given series, there are 5 columns: date,
+    and the 4 great lakes. Once the file is read in, ensure that the columns are in the correct order.
+    It is also assumed that the columns will have the following names: "sup", "mic_hur", "eri", "ont".
+
     Args:
-        df:
+        path: The path to the file
+        reader_args: Any arguments that are passed to pd.read_csv. If none are provided,
+        default options are assumed.
 
     Returns:
+        An Xarray DataArray with the historical data, with "Date" as the leading dimension and "lake" as the
+        second.
 
     """
+
+    reader_args = reader_args or {"index_col": "Date", "date_format": "%Y%m%d"}
+    df = pd.read_csv(path, **reader_args)[column_order]
     return xr.DataArray(
         df,
         dims=["Date", "lake"],
@@ -45,7 +61,7 @@ def default_parser(df) -> xr.DataArray:
 
 class FileReader(object):
 
-    def __init__(self, reader=default_reader, parser=default_parser, **metadata):
+    def __init__(self, reader=read_historical_files, **metadata):
         """
         Helper class to connect a particular CSV reader and an Xarray formatter. There are default
         options in use for files with 4 series, one for each lake. This allows for a custom
@@ -59,15 +75,18 @@ class FileReader(object):
         """
         super().__init__()
         self._reader = reader
-        self._parser = parser
         self.metadata = metadata or {}
 
-    def __call__(self, path) -> xr.DataArray:
-        arr: xr.DataArray = self._parser(self._reader(path))
+    def __call__(self, path, series_name=None) -> xr.DataArray:
+        arr: xr.DataArray = self._reader(path)
+        if series_name:
+            arr = arr.rename(series_name)
+        else:
+            arr = arr.rename("value")
         return arr.assign_attrs(**self.metadata)
 
 
-def read_type_separated_csv(path):
+def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
     """
     Read CSVs which have the format of {Type}{Lake} for each column. These consist of multiple columns for each lake.
     For example, each column in temperature is BasinSuperior, BasinErie, WaterMichigan, etc.
@@ -75,11 +94,13 @@ def read_type_separated_csv(path):
         path: Path of the file to read in
 
     Returns:
-        a pandas dataframe
-
+        An xarray.DataArray with dimensions 1 and 2 of Date and lake (respectively) followed by any other
+        dimensions, though generally this is "type", i.e. "Land", "Water", and "Basin".
     """
-    df = pd.read_csv(path)
+    reader_args = reader_args or {}
+    df = pd.read_csv(path, **reader_args)
 
+    # create a date index from two columns - year and month
     date_index = pd.Index(
         list(
             map(
@@ -89,32 +110,38 @@ def read_type_separated_csv(path):
         ),
         name="Date",
     )
+
+    # with the new date index, convert to a "long" format
     melted_data = (
         df.set_index(date_index)
         .drop(["year", "month"], axis=1)
         .reset_index()
-        .melt(value_name="temperature", id_vars="Date")
+        .melt(value_name="value", id_vars="Date")
     )
+
+    # Current columns are BasinErie, for example: find these, split, and create this varaible as two variables
     new_cols = pd.DataFrame(
         map(lambda x: re.findall("[A-Z][^A-Z]*", x), melted_data["variable"]),
         index=melted_data.index,
         columns=["type", "lake"],
     )
-    array_data = melted_data.merge(new_cols, left_index=True, right_index=True).drop(
+    long_df = melted_data.merge(new_cols, left_index=True, right_index=True).drop(
         ["variable"], axis=1
     )
-    return array_data
 
-
-def parse_read_separated_csv(df):
-
+    # with the melted data in the DF (Date -> lake -> ...) convert to an Xarray
+    # loop over the groups ("Basin", "Land", "Lake") and format to match the format of Type I files.
     lake_arrays = []
     grps = []
-    for (grp,), arr in df.groupby(["type"]):
+    for grp, arr in long_df.groupby("type"):
         grps.append(grp)
-        pivot_df = arr.pivot(columns="lake", values="temperature", index="Date")
+        pivot_long_df = arr.pivot(columns="lake", values="value", index="Date")
+
+        # rename the columns to match the shortened names in all other arrays (maintaining order as well)
         array = (
-            pivot_df.assign(mic_hur=pivot_df["Michigan"] + pivot_df["Huron"])
+            pivot_long_df.assign(
+                mic_hur=pivot_long_df["Michigan"] + pivot_long_df["Huron"]
+            )
             .drop(["Michigan", "Huron"], axis=1)
             .rename({"Erie": "eri", "Ontario": "ont", "Superior": "sup"}, axis=1)
         )[column_order]
@@ -131,31 +158,42 @@ def parse_read_separated_csv(df):
     return full_set
 
 
-# map the reader function to a specific series name. When requested,
+# Map a series name to a reader function and filepath. The filepaths are dynamic but based on
+# the source directory.
 series_map = {
-    "rnbs": (FileReader(source="CIGLR"), rnbs_path),
-    "precip": (FileReader(source="CIGLR"), pcp_lake_path),
-    "evap": (FileReader(source="CIGLR"), evap_lake_path),
-    "runoff": (
-        FileReader(reader=partial(pd.read_csv, date_format="%Y%m", index_col="Date")),
-        runoff_path,
+    "rnbs_hist": (FileReader(source="historical"), rnbs_hist_path),
+    "precip_hist": (FileReader(source="historical"), precip_hist_path),
+    "precip_cfsr": (
+        FileReader(reader=read_cfsr_files, source="CFSR"),
+        precip_cfsr_path,
     ),
-    "water_level": (FileReader(source="CIGLR"), water_level_path),
-    "temp": (
+    "evap_hist": (
+        FileReader(source="historical"),
+        evap_hist_path,
+    ),
+    "evap_cfsr": (
+        FileReader(reader=read_cfsr_files, source="CFSR"),
+        evap_cfsr_path,
+    ),
+    "runoff_hist": (
         FileReader(
-            reader=read_type_separated_csv,
-            parser=parse_read_separated_csv,
-            source="CFSR",
-            units="K",
+            reader=partial(
+                read_historical_files,
+                reader_args={"date_format": "%Y%m", "index_col": "Date"},
+            )
         ),
-        temp_path,
+        runoff_hist_path,
+    ),
+    "water_level": (FileReader(source="historical"), water_level_hist_path),
+    "temp_cfsr": (
+        FileReader(reader=read_cfsr_files, source="CFSR", units="K"),
+        temp_cfsr_path,
+    ),
+    "lhfx_cfsr": (
+        FileReader(reader=read_cfsr_files, source="CFSR", units="K"),
+        lhfx_cfsr_path,
     ),
 }
-
-
-def read_series(series):
-    read_fn, path = series_map[series]
-    return read_fn(path).rename(series)
 
 
 def load_data(series: Union[str, List[str]]):
@@ -168,11 +206,8 @@ def load_data(series: Union[str, List[str]]):
 
     """
 
-    if isinstance(series, str):
-        return read_series(series)
+    if isinstance(series, List):
+        return xr.merge([load_data(s) for s in series]).transpose("Date", "lake", ...)
     else:
-        data = map(read_series, series)
-        dataset = reduce(lambda a, x: xr.merge([a, x]), data).transpose(
-            "Date", "lake", ...
-        )
-        return dataset
+        read_fn, path = series_map[series]
+        return read_fn(path, series_name=series)

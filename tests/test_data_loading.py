@@ -1,12 +1,12 @@
 import pytest
 import xarray as xr
 
-from src.step1_data_loading.data_loading import load_data, read_series, series_map
+from src.step1_data_loading.data_loading import load_data, series_map
 
 
 @pytest.mark.parametrize("series", series_map.keys())
 def test_single_series(series):
-    df = read_series(series)
+    df = load_data(series)
     assert isinstance(df, xr.DataArray)
 
 

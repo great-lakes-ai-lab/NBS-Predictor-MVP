@@ -15,7 +15,7 @@ def test_default_scaling(lake_data):
 
 def test_single_series_scaling(lake_data):
     scaler = XArrayScaler()
-    subset = lake_data.sel(variable="runoff")
+    subset = lake_data.sel(variable="runoff_hist")
     scaled_xarray = scaler.fit_transform(subset)
 
     assert scaled_xarray.max() < subset.max()
