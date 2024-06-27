@@ -8,6 +8,7 @@ import xarray as xr
 
 from src.constants import (
     DATA_DIR,
+    lake_order,
 )
 
 # historical
@@ -30,8 +31,6 @@ __all__ = [
     "load_data",
 ]
 
-column_order = ["sup", "mic_hur", "eri", "ont"]
-
 
 def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
@@ -51,7 +50,7 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
 
     reader_args = reader_args or {"index_col": "Date", "date_format": "%Y%m%d"}
-    df = pd.read_csv(path, **reader_args)[column_order]
+    df = pd.read_csv(path, **reader_args)[lake_order]
     return xr.DataArray(
         df,
         dims=["Date", "lake"],
@@ -144,11 +143,11 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
             )
             .drop(["Michigan", "Huron"], axis=1)
             .rename({"Erie": "eri", "Ontario": "ont", "Superior": "sup"}, axis=1)
-        )[column_order]
+        )[lake_order]
 
         lake_x_array = xr.DataArray(
             array,
-            coords={"Date": array.index, "lake": column_order},
+            coords={"Date": array.index, "lake": lake_order},
             dims=["Date", "lake"],
             name=grp,
         )
