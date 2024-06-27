@@ -165,7 +165,7 @@ series_map = {
     "precip_hist": (FileReader(source="historical"), precip_hist_path),
     "precip_cfsr": (
         FileReader(reader=read_cfsr_files, source="CFSR"),
-        evap_cfsr_path,
+        precip_cfsr_path,
     ),
     "evap_hist": (
         FileReader(source="historical"),
