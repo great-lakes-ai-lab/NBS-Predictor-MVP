@@ -8,7 +8,7 @@ from sklearn.preprocessing import FunctionTransformer
 from src.step2_preprocessing.preprocessing import XArrayScaler
 from src.utils import flatten_array
 from src.step3_modeling.ensemble import DefaultEnsemble, BaggedXArrayRegressor
-from src.step3_modeling.gaussian_process import SklearnGPModel
+from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedSklearnGP
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
@@ -48,6 +48,9 @@ modelList = {
             ("flatten", FunctionTransformer(flatten_array)),
             ("nnet", BayesNN(num_warmup=0, num_samples=3, num_chains=1)),
         ]
+    ),
+    "LaggedSklearnGP": Pipeline(
+        [("flatten", FunctionTransformer(flatten_array)), ("gp", LaggedSklearnGP())]
     ),
 }
 
