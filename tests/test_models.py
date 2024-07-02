@@ -7,12 +7,12 @@ from sklearn.preprocessing import FunctionTransformer
 
 from src.step2_preprocessing.preprocessing import XArrayScaler
 from src.utils import flatten_array
-from src.step3_modeling.ensemble import DefaultEnsemble
-from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedGPModel
+from src.step3_modeling.ensemble import DefaultEnsemble, BaggedXArrayRegressor
+from src.step3_modeling.gaussian_process import SklearnGPModel
 from src.step3_modeling.metrics import summarize
-from src.step3_modeling.modeling import ModelBase, SklearnRegressorModel
+from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
-from src.step3_modeling.var_models import VAR, StatsModelVAR, NARX
+from src.step3_modeling.var_models import VAR, NARX
 from src.step3_modeling.nn import BayesNN
 from src.step4_postprocessing.postprocessing import output_forecast_results
 from tests.conftest import skip_tests
@@ -21,7 +21,9 @@ modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
     "MVN": LakeMVT(num_warmup=0, num_samples=3, num_chains=1),
     "VAR": VAR(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2}),
-    "NARX": NARX(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip": 2}),
+    "NARX": NARX(
+        num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip_hist": 2}
+    ),
     "VARX": VAR(
         num_warmup=0,
         num_samples=3,
@@ -35,22 +37,10 @@ modelList = {
             ("gp", SklearnGPModel(kernel=1.0 * k.Matern())),
         ]
     ),
-    "StatsModelVar": Pipeline(
-        steps=[
-            ("flatten", FunctionTransformer(flatten_array)),
-            ("stat_var", StatsModelVAR()),
-        ]
-    ),
-    "LaggedGP": Pipeline(
-        steps=[
-            ("flatten", FunctionTransformer(flatten_array)),
-            ("lagged_gp", LaggedGPModel()),
-        ]
-    ),
     "SklearnRegressor": Pipeline(
         [
             ("flatten", FunctionTransformer(flatten_array)),
-            ("nnet", SklearnRegressorModel()),
+            ("nnet", BaggedXArrayRegressor()),
         ]
     ),
     "BayesNN": Pipeline(

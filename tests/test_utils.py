@@ -100,3 +100,13 @@ def test_lag_array(lake_data):
     lagged_data = lag_array(my_data, lags=(1, 2, 3))
 
     assert lagged_data.shape == (10, 4, 3)
+
+
+def test_lag_array_with_dict(lake_data):
+    lags = {"rnbs_hist": 2, "precip_hist": 3}
+    lagged_data = lag_array(lake_data, lags=lags)
+
+    assert isinstance(lagged_data, list)
+    assert len(lagged_data) == 2
+    for arr, expected in zip(lagged_data, lags.values()):
+        assert arr.shape[-1] == expected + 1

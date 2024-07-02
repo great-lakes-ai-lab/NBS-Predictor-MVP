@@ -19,7 +19,7 @@ from src.utils import lag_array, flatten_array
 __all__ = [
     # Classes
     "VAR",
-    "StatsModelVAR",
+    "NARX",
 ]
 
 
@@ -153,8 +153,8 @@ class VAR(NumpyroModel):
             return new_vals, y_t
 
         prev = y[:max_lag][-ar_lag:]
-        months = jnp.array(y_index.month - 1)
         # need to subtract one because indexing starts at 0.
+        months = jnp.array(y_index.month - 1)
         initial_values = prev
 
         covars = (months[max_lag:], *lagged_covars)
@@ -171,59 +171,11 @@ class VAR(NumpyroModel):
             numpyro.deterministic("y_forecast", ys[-future:])
 
 
-class StatsModelVAR(ModelBase):
-
-    def __init__(
-        self, lag_order=None, lag_selection_criterion="bic", lag_selection_order=18
-    ):
-        self.lag_order = lag_order
-        self.lag_selection_criterion = lag_selection_criterion
-        self.selection_lag_order = lag_selection_order
-        self.model = None
-
-    def fit(self, X, y, *args, **kwargs):
-        model = StatsVAR(
-            endog=np.array(y),
-            exog=np.array(X),
-        )
-
-        if self.lag_order is None:
-            order_value = model.select_order(self.selection_lag_order).aic
-            self.lag_order = order_value
-
-        self.model = model.fit(self.lag_order)
-
-    def predict(self, X, y, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
-        exog_past, exog_future = X[:-forecast_steps], X[-forecast_steps:]
-        y_past = y.loc[exog_past.indexes["Date"]]
-
-        forecast_dates = exog_future.indexes["Date"]
-        mean, lower, upper = self.model.forecast_interval(
-            y_past, steps=forecast_steps, exog_future=exog_future
-        )
-        sd = (upper - mean) / 1.96
-
-        # order MUST be mean, lower, upper, sd
-        arrays = np.stack([mean, lower, upper, sd], axis=-1)
-        results = output_forecast_results(
-            arrays, forecast_labels=forecast_dates, lakes=y_past.indexes["lake"]
-        )
-
-        return results
-
-    def save(self, path):
-        pass
-
-    @classmethod
-    def load(cls, path):
-        pass
-
-
 class NARX(NumpyroModel):
 
     def __init__(self, lags=None, num_chains=4, num_samples=1000, num_warmup=1000):
         super().__init__(lags, num_chains, num_samples, num_warmup)
-        self.lags = lags or {"y": 3, "evap": 2, "precip": 2}
+        self.lags = lags or {"y": 3, "evap_hist": 2, "precip_hist": 2}
 
     @property
     def is_fitted(self):
@@ -263,7 +215,7 @@ class NARX(NumpyroModel):
         L_Omega = sigma[..., None] * l_omega
 
         input_dim = reduce(lambda a, x: a + 4 * x, lags.values(), 0)
-        h1 = 50
+        h1 = 10
         output_dim = 4
 
         # first layer of the neural network

@@ -1,15 +1,18 @@
 import datetime as dt
 import logging
 from functools import partial, reduce, singledispatch
-from typing import Union
+from typing import Union, List, Tuple, Dict, Iterable
 
+import jax.typing
 import numpy as np
+import numpy.typing
 import pandas as pd
 import torch
 import xarray as xr
 from dateutil.relativedelta import relativedelta
 from jax import numpy as jnp
 from numpy.typing import NDArray
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,7 @@ def percentile(q):
 
 
 class create_rnbs_snapshot(object):
+    # TODO: this is largely redundant with sklearn TimeSeriesSplit object
     def __init__(
         self,
         rnbs_data: Union[pd.Series, xr.DataArray],
@@ -166,7 +170,7 @@ def acf(x, max_lag=20):
 
 
 @singledispatch
-def lag_array(x: np.typing.NDArray, lags=(1,)):
+def lag_array(x: np.ndarray, lags=(1,)):
     lag_vals = [
         np.concatenate(
             [
@@ -181,7 +185,7 @@ def lag_array(x: np.typing.NDArray, lags=(1,)):
     return values
 
 
-@lag_array.register(jnp.ndarray)
+@lag_array.register
 def lag_jnp_array(x: jnp.ndarray, lags=(1,)):
     lag_vals = [
         (
@@ -199,8 +203,8 @@ def lag_jnp_array(x: jnp.ndarray, lags=(1,)):
     return values
 
 
-@lag_array.register(pd.Series)
-def lag_series(x: pd.Series, lags=(1)):
+@lag_array.register
+def lag_series(x: pd.Series, lags=(1,)):
     """Create a lagged vector from a given series. Currently only works on named series.
     Args:
         x (pd.Series): A pandas series
@@ -226,17 +230,47 @@ def lag_series(x: pd.Series, lags=(1)):
     return lagged_var
 
 
-@lag_array.register(xr.DataArray)
-def lag_xarray(x: xr.DataArray, lags=(1)):
-    lag_vect = [x.shift(Date=j).rename(f"lag_{j}") for j in lags]
+@lag_array.register
+def lag_xarray(
+    x: xr.DataArray, lags: Union[Tuple[int], Dict[int, Iterable]] = (1,)
+) -> Union[xr.DataArray, List[xr.DataArray]]:
+    """
+    Lag xarray function called on data arrays. Because XArray includes dimension information, a dictionary of lags
+    can be passed
+    Args:
+        x (xr.DataArray): Data Array to get lags for
+        lags: Dictionary of lags, either integers (where a range from 0 to the integer given is implied) or iterables
+              of the exact lag values to calculate
+    Returns: A lagged Xarray of the same dimensions
 
-    lagged_data = xr.DataArray(
-        lag_vect,
-        dims=["lags", *x.dims],
-        coords={"lags": list(lags), **x.coords},
-    ).transpose(*x.dims, "lags")
+    """
 
-    return lagged_data
+    # if a dictionary of lags is passed, it is assumed that the "variable" dimension is present and the lags
+    # describe the lag to apply to those dimensions (recursive function)
+    if isinstance(lags, dict):
+        lagged_vars = []
+        for var, max_lag in lags.items():
+            if isinstance(max_lag, int):
+                lag_range = range(0, max_lag + 1)
+            else:
+                # if not an integer, assume it is an iterator
+                lag_range = max_lag
+
+            # recursive function call to lag each requested item
+            lagged_vars.append(lag_array(x.sel(variable=var), lags=lag_range))
+        return lagged_vars
+    else:
+
+        # given the range of lags, get the lagged values and then return an XArray with those dimensions
+        lag_vect = [x.shift(Date=j).rename(f"lag_{j}") for j in lags]
+
+        lagged_data = xr.DataArray(
+            lag_vect,
+            dims=["lags", *x.dims],
+            coords={"lags": list(lags), **x.coords},
+        ).transpose(*x.dims, "lags")
+
+        return lagged_data
 
 
 def setup_logger(lake, year):
@@ -292,11 +326,6 @@ def flatten_array(X: xr.DataArray, lead_dim="Date"):
     return xr.DataArray(flattened_df, dims=["Date", "variable"])
 
 
-@flatten_array.register(jnp.ndarray)
-def flatten_np_array(X: jnp.ndarray, lead_dim="Date"):
-    return X.reshape(X.shape[0], -1)
-
-
-@flatten_array.register(np.ndarray)
-def flatten_np_array(X: np.typing.NDArray, lead_dim="Date"):
-    return X.reshape(X.shape[0], -1)
+@flatten_array.register
+def flatten_np_array(X: Union[np.ndarray, jnp.ndarray], lead_dim=0):
+    return X.reshape(X.shape[lead_dim], -1)

@@ -1,5 +1,6 @@
 import calendar
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 from sklearn.impute import SimpleImputer
@@ -97,6 +98,41 @@ class CreateMonthDummies(object):
         return xr.DataArray(month_dummies, dims=["Date", "month"], coords=coords)
 
 
+class SeasonalFeatures(object):
+
+    def __init__(self, period=12):
+        self.period = period
+
+    def fit(self, X: xr.DataArray, y=None):
+        pass
+
+    def transform(self, X: xr.DataArray, y=None):
+        features = np.append(
+            sin_feature(X.indexes["Date"].month.values, self.period).reshape(-1, 1),
+            cos_feature(X.indexes["Date"].month.values, self.period).reshape(-1, 1),
+            axis=1,
+        )
+        return xr.DataArray(
+            features,
+            coords={
+                "Date": X.indexes["Date"],
+                "variable": pd.Index([f"sin_{self.period}", f"cos_{self.period}"]),
+            },
+            dims=["Date", "variable"],
+        )
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        return self.transform(X)
+
+
+def cos_feature(x, period):
+    return np.cos(x / period * 2 * np.pi)
+
+
+def sin_feature(x, period):
+    return np.sin(x / period * 2 * np.pi)
+
+
 class XArrayAdapter(object):
 
     def __init__(self, sklearn_preprocessor, feature_prefix="f"):
@@ -124,6 +160,24 @@ class XArrayAdapter(object):
             },
             dims=["Date", "variable"],
         )
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X, y)
+        return self.transform(X)
+
+
+class XArrayUnion(object):
+
+    def __init__(self, transformers):
+        self.transformers = transformers
+
+    def transform(self, X: xr.DataArray, y=None):
+        values = [transformer.transform(X) for _, transformer in self.transformers]
+        return xr.concat(values, dim="variable")
+
+    def fit(self, X: xr.DataArray, y=None):
+        for _, transformer in self.transformers:
+            transformer.fit(X, y)
 
     def fit_transform(self, X: xr.DataArray, y=None):
         self.fit(X, y)

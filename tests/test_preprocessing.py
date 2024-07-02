@@ -4,6 +4,7 @@ import xarray as xr
 from src.step2_preprocessing.preprocessing import (
     XArrayScaler,
     CreateMonthDummies,
+    SeasonalFeatures,
 )
 from src.utils import flatten_array
 
@@ -40,3 +41,15 @@ def test_flatten_df(lake_data):
 
     assert flat_data.shape[0] == lake_data.shape[0]
     assert flat_data.shape[1] == 4 * lake_data.shape[-1]  # 4 lakes, then each variable
+
+
+def test_seasonal_features(lake_data):
+
+    seasoner = SeasonalFeatures()
+
+    seasonal_features = seasoner.fit_transform(
+        lake_data.sel(variable=["evap_hist", "rnbs_hist"])
+    )  # doesn't matter, since it uses the indexes
+
+    assert seasonal_features.shape[1] == 2
+    assert isinstance(seasonal_features, xr.DataArray)

@@ -25,7 +25,7 @@ class BayesNN(NumpyroModel):
     def model(y, y_index, lags, covariates, future=0):
 
         input_dim = covariates.shape[1]
-        h1 = 8
+        h1 = 16
         output_dim = 4
 
         nu = numpyro.sample("nu", dist.HalfNormal(4))
