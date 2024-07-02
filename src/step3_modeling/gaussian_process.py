@@ -28,6 +28,10 @@ class SklearnGPModel(ModelBase, ABC):
         super().__init__()
         self.model = GaussianProcessRegressor(kernel, *args, **kwargs)
 
+    @property
+    def name(self):
+        return "SklearnGP"
+
     def fit(self, X, y, *args, **kwargs):
         self.model.fit(X, y, *args, **kwargs)
 
@@ -66,6 +70,10 @@ class LaggedSklearnGP(ModelBase):
         super().__init__()
         self.model = GaussianProcessRegressor(kernel, *args, **kwargs)
         self.lags = lags or {"y": 3}
+
+    @property
+    def name(self):
+        return "LaggedGPModel"
 
     def fit(self, X, y, *args, **kwargs):
         assert len(X.shape) == 2

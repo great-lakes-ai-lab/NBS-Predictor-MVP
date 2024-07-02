@@ -71,8 +71,13 @@ class BaggedXArrayRegressor(ModelBase):
     def __init__(self, sklearn_regressor=None, **bagging_kwargs):
         super().__init__()
         self.regressor = sklearn_regressor or LinearRegression()
-        bagging_kwargs = bagging_kwargs or {"n_estimators": 250, "n_jobs": -1}
+        self.bagging_kwargs = bagging_kwargs or {"n_estimators": 250, "n_jobs": -1}
         self.model = BaggingRegressor(estimator=self.regressor, **bagging_kwargs)
+
+    @property
+    def name(self):
+        bagging_str = [f"{k}={v}" for k, v in self.bagging_kwargs.items()]
+        return f"BaggedXarrayRegressor({self.regressor.__repr__()}, {', '.join(bagging_str)})"
 
     def fit(self, X, y, **kwargs):
         self.model.fit(X, y)

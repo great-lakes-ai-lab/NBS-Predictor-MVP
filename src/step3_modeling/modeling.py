@@ -28,6 +28,11 @@ class ModelBase(ABC):
     def __init__(self):
         super().__init__()
 
+    @property
+    @abstractmethod
+    def name(self):
+        pass
+
     @abstractmethod
     def fit(self, X, y, *args, **kwargs):
         pass

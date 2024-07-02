@@ -13,6 +13,10 @@ class BayesNN(NumpyroModel):
         super().__init__(lags, num_chains, num_samples, num_warmup)
 
     @property
+    def name(self):
+        return "BayesNN"
+
+    @property
     def coords(self):
         return {"lakes": lake_order}
 
