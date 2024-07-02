@@ -3,16 +3,13 @@ import logging
 from functools import partial, reduce, singledispatch
 from typing import Union, List, Tuple, Dict, Iterable
 
-import jax.typing
 import numpy as np
-import numpy.typing
 import pandas as pd
 import torch
 import xarray as xr
 from dateutil.relativedelta import relativedelta
 from jax import numpy as jnp
 from numpy.typing import NDArray
-
 
 logger = logging.getLogger(__name__)
 

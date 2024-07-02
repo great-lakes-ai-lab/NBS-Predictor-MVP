@@ -1,7 +1,7 @@
 import numpy as np
+import pandas as pd
 import xarray as xr
 from scipy.stats import ecdf
-import pandas as pd
 
 __all__ = [
     "convert_to_labels",

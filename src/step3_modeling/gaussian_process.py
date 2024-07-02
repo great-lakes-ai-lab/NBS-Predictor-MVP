@@ -1,24 +1,19 @@
-from functools import reduce, partial
+from abc import ABC
+from functools import reduce
 
-import jax
-from jax import jit, vmap
-from jax.lax import scan
 import numpy as np
 import numpyro
-from numpyro import distributions as dist
-from jax import numpy as jnp
-import pandas as pd
 import xarray as xr
-from abc import ABC
+from jax import jit, vmap
+from jax import numpy as jnp
+from numpyro import distributions as dist
 from scipy.stats import norm
-from scipy.spatial.distance import cdist
 from sklearn.gaussian_process import GaussianProcessRegressor
 
-
+from src.constants import lake_order
 from src.step3_modeling.modeling import ModelBase, NumpyroModel
 from src.step4_postprocessing import output_forecast_results
 from src.utils import lag_array, flatten_array
-from src.constants import lake_order
 
 __all__ = ["SklearnGPModel"]
 

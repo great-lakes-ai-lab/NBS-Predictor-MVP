@@ -2,18 +2,15 @@ import calendar
 from functools import reduce
 from typing import Union
 
+import jax
 import numpy as np
 import numpyro
-import xarray as xr
-import jax
 from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro.contrib.control_flow import scan
 from numpyro.infer.reparam import LocScaleReparam
-from statsmodels.tsa.api import VAR as StatsVAR
 
-from src.step3_modeling.modeling import ModelBase, NumpyroModel
-from src.step4_postprocessing.postprocessing import output_forecast_results
+from src.step3_modeling.modeling import NumpyroModel
 from src.utils import lag_array, flatten_array
 
 __all__ = [
