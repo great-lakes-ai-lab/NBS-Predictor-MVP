@@ -1,26 +1,15 @@
 from abc import ABC
-from functools import reduce
 
-import pandas as pd
 import numpy as np
-import numpyro
-import pandas as pd
-import xarray
 import xarray as xr
-from scipy import stats
-from jax import jit, vmap
-from jax import numpy as jnp
-from numpyro import distributions as dist
 from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor, kernels
-from dateutil.relativedelta import relativedelta
 
-from src.constants import lake_order
-from src.step3_modeling.modeling import ModelBase, NumpyroModel
+from src.step3_modeling.modeling import ModelBase
 from src.step4_postprocessing import output_forecast_results
 from src.utils import lag_array, flatten_array
 
-__all__ = ["SklearnGPModel"]
+__all__ = ["SklearnGPModel", "LaggedSklearnGP"]
 
 
 class SklearnGPModel(ModelBase, ABC):
