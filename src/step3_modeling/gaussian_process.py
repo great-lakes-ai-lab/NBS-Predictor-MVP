@@ -115,10 +115,9 @@ class LaggedSklearnGP(ModelBase):
             pred = np.stack([new_mean, new_sd], axis=2)
             predictions.append(pred)
 
-            # sample from the estimated distribution, and then run the next level of prediction
-            # TODO: should we just select the mean instead?
+            # prepend the new mean - the first value is the most recent lag
             initial_y = np.concatenate(
-                [new_mean.reshape(-1, 4, 1), initial_y[:, :, 1:]],
+                [new_mean.reshape(-1, 4, 1), initial_y[:, :, 1:]],  # date, lake, lag
                 axis=2,
             )
 
