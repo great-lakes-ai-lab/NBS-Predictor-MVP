@@ -1,7 +1,9 @@
 import datetime as dt
 import re
-from functools import partial
+from functools import partial, singledispatch
 from typing import List, Union
+import numpy as np
+from pathlib import Path
 
 import pandas as pd
 import xarray as xr
@@ -25,10 +27,13 @@ evap_cfsr_path = DATA_DIR / "CFSR" / "CFSR_EVAP_Basin_Avgs.csv"
 precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
 
 
+# CFS
+temp_cfs_path = DATA_DIR / "CFS" / "CFS_TMP_Basin_Avgs.csv"
+precip_cfs_path = DATA_DIR / "CFS" / "CFS_APCP_Basin_Avgs.csv"
+
+
 # Only interact with the data through the load_data
-__all__ = [
-    "load_data",
-]
+__all__ = ["load_data", "input_map"]
 
 column_order = ["sup", "mic_hur", "eri", "ont"]
 
@@ -57,33 +62,6 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
         dims=["Date", "lake"],
         coords={"Date": df.index, "lake": df.columns},
     )
-
-
-class FileReader(object):
-
-    def __init__(self, reader=read_historical_files, **metadata):
-        """
-        Helper class to connect a particular CSV reader and an Xarray formatter. There are default
-        options in use for files with 4 series, one for each lake. This allows for a custom
-        formatter to be used as well. This is a callable, so once instantiated, it can be used
-        like a normal function.
-
-        Args:
-            reader: A function for reading in data.
-            parser: A function parsing the data into XArray format
-            **metadata: Any keyword arguments to append as attributes to the output XArray
-        """
-        super().__init__()
-        self._reader = reader
-        self.metadata = metadata or {}
-
-    def __call__(self, path, series_name=None) -> xr.DataArray:
-        arr: xr.DataArray = self._reader(path)
-        if series_name:
-            arr = arr.rename(series_name)
-        else:
-            arr = arr.rename("value")
-        return arr.assign_attrs(**self.metadata)
 
 
 def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
@@ -158,56 +136,183 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
     return full_set
 
 
+def read_cfs_file(path) -> xr.DataArray:
+
+    input_csv = pd.read_csv(path)
+    cfsrun = pd.to_datetime(input_csv["cfsrun"], format="%Y%m%d%H")
+    forecast_date = pd.to_datetime(
+        input_csv.pop("year").astype(str) + input_csv.pop("month").astype(str),
+        format="%Y%m",
+    )
+
+    input_csv["cfsrun"] = cfsrun
+    input_csv["forecast_date"] = forecast_date
+
+    melted_vars = input_csv.melt(id_vars=["cfsrun", "forecast_date"])
+    new_cols = pd.DataFrame(
+        map(lambda x: re.findall("[A-Z][^A-Z]*", x), melted_vars.pop("variable")),
+        index=melted_vars.index,
+        columns=["type", "lake"],
+    )
+
+    melted_vars[["type", "lake"]] = new_cols
+    melted_vars = melted_vars[
+        ~melted_vars.set_index(
+            ["cfsrun", "forecast_date", "type", "lake"]
+        ).index.duplicated()
+    ]
+
+    # remove duplicated rows
+    arrays = []
+    for cfs, grp in melted_vars.groupby("cfsrun"):
+        lakes = ["Erie", "Huron", "Michigan", "Ontario", "Superior"]
+        ls = [
+            (j, df.pivot(columns="lake", values="value", index="forecast_date").values)
+            for j, df in grp.groupby("type")
+        ]
+
+        type_labels, arr = [_[0] for _ in ls], np.stack([_[1] for _ in ls], axis=-1)
+        out = xr.DataArray(
+            arr[None, ...],
+            dims=["cfsrun", "forecast_step", "lake", "type"],
+            coords={
+                "cfsrun": [cfs],
+                "forecast_step": range(10),
+                "type": type_labels,
+                "lake": lakes,
+            },
+        )
+        arrays.append(out)
+
+    forecast_vals = xr.concat(arrays, dim="cfsrun")
+    return forecast_vals
+
+
+class FileReader(object):
+
+    def __init__(
+        self,
+        path,
+        series_name=None,
+        reader: callable = read_historical_files,
+        **metadata
+    ):
+        """
+        Helper class to connect a particular CSV reader and an Xarray formatter. There are default
+        options in use for files with 4 series, one for each lake. This allows for a custom
+        formatter to be used as well. This is a callable, so once instantiated, it can be used
+        like a normal function.
+
+        Args:
+            reader: A function for reading in data.
+            parser: A function parsing the data into XArray format
+            **metadata: Any keyword arguments to append as attributes to the output XArray
+        """
+        super().__init__()
+        self._reader = reader
+        self.metadata = metadata or {}
+        self.path = path
+        self.series_name = series_name or np.random.randint(10000)
+
+    def __call__(self) -> xr.DataArray:
+        arr: xr.DataArray = self._reader(self.path).rename(self.series_name)
+        return arr.assign_attrs(**self.metadata)
+
+
+def expand_dims(fn, var_name="Thiessen"):
+    def inner(*args, **kwargs):
+        return fn(*args, **kwargs).expand_dims(dim={"type": [var_name]}, axis=-1)
+
+    return inner
+
+
 # Map a series name to a reader function and filepath. The filepaths are dynamic but based on
 # the source directory.
-series_map = {
-    "rnbs_hist": (FileReader(source="historical"), rnbs_hist_path),
-    "precip_hist": (FileReader(source="historical"), precip_hist_path),
-    "precip_cfsr": (
-        FileReader(reader=read_cfsr_files, source="CFSR"),
-        precip_cfsr_path,
-    ),
-    "evap_hist": (
-        FileReader(source="historical"),
-        evap_hist_path,
-    ),
-    "evap_cfsr": (
-        FileReader(reader=read_cfsr_files, source="CFSR"),
-        evap_cfsr_path,
-    ),
-    "runoff_hist": (
-        FileReader(
-            reader=partial(
-                read_historical_files,
-                reader_args={"date_format": "%Y%m", "index_col": "Date"},
-            )
+
+forecast_map = {
+    "precip": FileReader(
+        precip_cfs_path, reader=read_cfs_file, source="CFS", type="forecast"
+    )
+}
+
+input_map = {
+    "rnbs": FileReader(rnbs_hist_path, source="historical", series_name="rnbs_hist"),
+    "precip": [
+        expand_dims(
+            FileReader(precip_hist_path, source="historical", series_name="precip_hist")
         ),
+        FileReader(
+            precip_cfsr_path,
+            reader=read_cfsr_files,
+            source="CFSR",
+            series_name="precip_reanalysis",
+        ),
+    ],
+    "evap": [
+        expand_dims(
+            FileReader(evap_hist_path, source="historical", series_name="evap_hist")
+        ),
+        FileReader(
+            evap_cfsr_path,
+            reader=read_cfsr_files,
+            source="CFSR",
+            series_name="evap_reanalysis",
+        ),
+    ],
+    "runoff": FileReader(
         runoff_hist_path,
+        reader=partial(
+            read_historical_files,
+            reader_args={"date_format": "%Y%m", "index_col": "Date"},
+        ),
     ),
-    "water_level": (FileReader(source="historical"), water_level_hist_path),
-    "temp_cfsr": (
-        FileReader(reader=read_cfsr_files, source="CFSR", units="K"),
+    "water_level": FileReader(
+        water_level_hist_path, source="historical", series_name="water_level"
+    ),
+    "temp": FileReader(
         temp_cfsr_path,
+        reader=read_cfsr_files,
+        source="CFSR",
+        units="K",
+        series_name="temp",
     ),
-    "lhfx_cfsr": (
-        FileReader(reader=read_cfsr_files, source="CFSR", units="K"),
+    "lhfx": FileReader(
         lhfx_cfsr_path,
+        reader=read_cfsr_files,
+        source="CFSR",
+        units="K",
+        series_name="lhfx",
     ),
 }
 
 
-def load_data(series: Union[str, List[str]]):
+def load_data(series: Union[str, List[str]], data_type="inputs"):
     """
     Load a data series based on name. Requires that raw files be available in the DATA_DIR from constants.py
     Args:
         series: the name of the series. Valid names include "rnbs", "precip", "evap", "runoff", "water_level"
+        data_type: Type of values to get. Options include "inputs" and "forecasts".
     Returns:
         An xarray DataArray containing each series OR a pandas dataframe if only one series is requested.
 
     """
 
+    assert data_type in ["inputs", "forecasts"]
+    series_mapping = input_map if data_type == "inputs" else forecast_map
+
+    # If a list of series is passed in, recursively call the loading function
     if isinstance(series, List):
-        return xr.merge([load_data(s) for s in series]).transpose("Date", "lake", ...)
+        return xr.merge([load_data(s).rename(s) for s in series]).transpose(
+            "Date", "lake", ...
+        )
     else:
-        read_fn, path = series_map[series]
-        return read_fn(path, series_name=series)
+        read_fn = series_mapping[series]
+        if isinstance(read_fn, list):
+            inputs = [read_fn() for read_fn in series_mapping[series]]
+            return xr.concat(inputs, dim="type").rename(series)
+        else:
+            return read_fn().rename(series)
+
+
+if __name__ == "__main__":
+    load_data("evap")
