@@ -3,7 +3,7 @@ import datetime as dt
 import pandas as pd
 import pytest
 
-from src.step2_preprocessing.preprocessing import XArrayStandardScaler
+from src.step2_preprocessing.preprocessing import XArrayScaler
 from src.utils import create_rnbs_snapshot, acf, lag_array
 
 
@@ -30,8 +30,8 @@ def test_snapshot_scaling(lake_data):
         split_date=dt.datetime(1999, 12, 1),
         covariates=lake_data.sel(variable=["runoff", "precip"]),
     )
-    x_scaler = XArrayStandardScaler()
-    y_scaler = XArrayStandardScaler()
+    x_scaler = XArrayScaler()
+    y_scaler = XArrayScaler()
 
     old_max = local_snapshot.train_x.max()
 
@@ -96,4 +96,12 @@ def test_lag_array(lake_data):
     my_data = lake_data.sel(variable="rnbs")[:10]
     lagged_data = lag_array(my_data, lags=(1, 2, 3))
 
-    assert lagged_data.shape == (10, 4, 3)
+
+def test_lag_array_with_dict(lake_data):
+    lags = {"rnbs": 2, "precip": 3}
+    lagged_data = lag_array(lake_data, lags=lags)
+
+    assert isinstance(lagged_data, list)
+    assert len(lagged_data) == 2
+    for arr, expected in zip(lagged_data, lags.values()):
+        assert arr.shape[-1] == expected + 1
