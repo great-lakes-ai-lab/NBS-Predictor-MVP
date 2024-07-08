@@ -20,7 +20,7 @@ def preprocessor():
 def postprocessor(lake_data):
     return PostprocessingPipeline(
         steps=[
-            ("exceedance", ExceedanceProbClosure(lake_data.sel(variable="rnbs_hist"))),
+            ("exceedance", ExceedanceProbClosure(lake_data.sel(variable="rnbs"))),
         ]
     )
 

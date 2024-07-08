@@ -21,7 +21,7 @@ def test_default_scaling(lake_data):
 
 def test_single_series_scaling(lake_data):
     scaler = XArrayScaler()
-    subset = lake_data.sel(variable="runoff_hist")
+    subset = lake_data.sel(variable="runoff")
     scaled_xarray = scaler.fit_transform(subset)
 
     assert scaled_xarray.max() < subset.max()
@@ -40,7 +40,7 @@ def test_flatten_df(lake_data):
     flat_data = flatten_array(lake_data)
 
     assert flat_data.shape[0] == lake_data.shape[0]
-    assert flat_data.shape[1] == 4 * lake_data.shape[-1]  # 4 lakes, then each variable
+    assert flat_data.shape[1] == 4 * lake_data.shape[1]  # 4 lakes, then each variable
 
 
 def test_seasonal_features(lake_data):
@@ -48,7 +48,7 @@ def test_seasonal_features(lake_data):
     seasoner = SeasonalFeatures()
 
     seasonal_features = seasoner.fit_transform(
-        lake_data.sel(variable=["evap_hist", "rnbs_hist"])
+        lake_data.sel(variable=["evap", "rnbs"])
     )  # doesn't matter, since it uses the indexes
 
     assert seasonal_features.shape[1] == 2
