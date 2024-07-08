@@ -1,10 +1,9 @@
 import datetime as dt
 import re
-from functools import partial, singledispatch
+from functools import partial
 from typing import List, Union
-import numpy as np
-from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -37,6 +36,13 @@ evap_cfs_path = DATA_DIR / "CFS" / "CFS_EVAP_Basin_Avgs.csv"
 __all__ = ["load_data", "input_map", "forecast_map"]
 
 column_order = ["sup", "mic_hur", "eri", "ont"]
+name_remap = {
+    "Erie": "eri",
+    "Ontario": "ont",
+    "Superior": "sup",
+    "Huron": "hur",
+    "Michigan": "mic",
+}  # mic_hur is done while creating the column
 
 
 def read_historical_files(path, reader_args=None) -> xr.DataArray:
@@ -122,8 +128,8 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
                 mic_hur=pivot_long_df["Michigan"] + pivot_long_df["Huron"]
             )
             .drop(["Michigan", "Huron"], axis=1)
-            .rename({"Erie": "eri", "Ontario": "ont", "Superior": "sup"}, axis=1)
-        )[column_order]
+            .rename(name_remap, axis=1)
+        )
 
         lake_x_array = xr.DataArray(
             array,
@@ -165,8 +171,8 @@ def read_cfs_file(path) -> xr.DataArray:
 
     # remove duplicated rows
     arrays = []
+    lakes = ["Erie", "Huron", "Michigan", "Ontario", "Superior"]
     for cfs, grp in melted_vars.groupby("cfsrun"):
-        lakes = ["Erie", "Huron", "Michigan", "Ontario", "Superior"]
         ls = [
             (j, df.pivot(columns="lake", values="value", index="forecast_date").values)
             for j, df in grp.groupby("type")
@@ -180,13 +186,26 @@ def read_cfs_file(path) -> xr.DataArray:
                 "Date": [cfs],
                 "forecast_step": range(10),
                 "type": type_labels,
-                "lake": lakes,
+                "lake": [name_remap[lake] for lake in lakes],
             },
         )
         arrays.append(out)
-
     forecast_vals = xr.concat(arrays, dim="Date")
-    return forecast_vals
+
+    # need to collapse michigan/huron measurements together into a single lake
+    mich_hur = (
+        forecast_vals.sel(lake=["mic", "hur"])
+        .mean(dim="lake")
+        .expand_dims(dim={"lake": ["mic_hur"]})
+    )
+
+    cur_forecasts = forecast_vals.sel(lake=["eri", "sup", "ont"])
+    forecast_array = (
+        xr.concat([mich_hur, cur_forecasts], dim="lake")
+        .sel(lake=column_order)
+        .transpose("Date", "lake", ...)
+    )
+    return forecast_array
 
 
 class FileReader(object):
@@ -236,6 +255,12 @@ forecast_map = {
     ),
     "evap": FileReader(
         evap_cfs_path, reader=read_cfs_file, source="CFS", type="forecast"
+    ),
+    "temp": FileReader(
+        temp_cfs_path,
+        reader=read_cfs_file,
+        source="CFS",
+        type="forecast",
     ),
 }
 
