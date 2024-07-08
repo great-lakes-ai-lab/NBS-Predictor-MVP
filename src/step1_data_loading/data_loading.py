@@ -30,10 +30,11 @@ precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
 # CFS
 temp_cfs_path = DATA_DIR / "CFS" / "CFS_TMP_Basin_Avgs.csv"
 precip_cfs_path = DATA_DIR / "CFS" / "CFS_APCP_Basin_Avgs.csv"
+evap_cfs_path = DATA_DIR / "CFS" / "CFS_EVAP_Basin_Avgs.csv"
 
 
 # Only interact with the data through the load_data
-__all__ = ["load_data", "input_map"]
+__all__ = ["load_data", "input_map", "forecast_map"]
 
 column_order = ["sup", "mic_hur", "eri", "ont"]
 
@@ -174,9 +175,9 @@ def read_cfs_file(path) -> xr.DataArray:
         type_labels, arr = [_[0] for _ in ls], np.stack([_[1] for _ in ls], axis=-1)
         out = xr.DataArray(
             arr[None, ...],
-            dims=["cfsrun", "forecast_step", "lake", "type"],
+            dims=["Date", "forecast_step", "lake", "type"],
             coords={
-                "cfsrun": [cfs],
+                "Date": [cfs],
                 "forecast_step": range(10),
                 "type": type_labels,
                 "lake": lakes,
@@ -184,7 +185,7 @@ def read_cfs_file(path) -> xr.DataArray:
         )
         arrays.append(out)
 
-    forecast_vals = xr.concat(arrays, dim="cfsrun")
+    forecast_vals = xr.concat(arrays, dim="Date")
     return forecast_vals
 
 
@@ -212,7 +213,7 @@ class FileReader(object):
         self._reader = reader
         self.metadata = metadata or {}
         self.path = path
-        self.series_name = series_name or np.random.randint(10000)
+        self.series_name = series_name
 
     def __call__(self) -> xr.DataArray:
         arr: xr.DataArray = self._reader(self.path).rename(self.series_name)
@@ -232,7 +233,10 @@ def expand_dims(fn, var_name="Thiessen"):
 forecast_map = {
     "precip": FileReader(
         precip_cfs_path, reader=read_cfs_file, source="CFS", type="forecast"
-    )
+    ),
+    "evap": FileReader(
+        evap_cfs_path, reader=read_cfs_file, source="CFS", type="forecast"
+    ),
 }
 
 input_map = {
@@ -302,9 +306,9 @@ def load_data(series: Union[str, List[str]], data_type="inputs"):
 
     # If a list of series is passed in, recursively call the loading function
     if isinstance(series, List):
-        return xr.merge([load_data(s).rename(s) for s in series]).transpose(
-            "Date", "lake", ...
-        )
+        return xr.merge(
+            [load_data(s, data_type=data_type).rename(s) for s in series]
+        ).transpose("Date", "lake", ...)
     else:
         read_fn = series_mapping[series]
         if isinstance(read_fn, list):
@@ -312,7 +316,3 @@ def load_data(series: Union[str, List[str]], data_type="inputs"):
             return xr.concat(inputs, dim="type").rename(series)
         else:
             return read_fn().rename(series)
-
-
-if __name__ == "__main__":
-    load_data("evap")
