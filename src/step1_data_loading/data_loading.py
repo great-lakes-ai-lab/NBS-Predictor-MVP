@@ -245,6 +245,20 @@ class FileReader(object):
 
 
 def expand_dims(fn, var_name="Thiessen"):
+    """
+    Decorator to take the output of a FileReader and add a new dimensions (type) to a DataArray. This allows merging
+    with FileReaders that return a type ("Basin", "Water", "Land") with FileReaders that do not, i.e. only return
+    Date and Lake.
+
+    Args:
+        fn: A filereader function
+        var_name: The variable name of the newly "type" dimension.
+
+    Returns:
+        The DataArray from "fn" with a new "type" dimension appended on the right.
+
+    """
+
     def inner(*args, **kwargs):
         return fn(*args, **kwargs).expand_dims(dim={"type": [var_name]}, axis=-1)
 
@@ -253,7 +267,6 @@ def expand_dims(fn, var_name="Thiessen"):
 
 # Map a series name to a reader function and filepath. The filepaths are dynamic but based on
 # the source directory.
-
 forecast_map = {
     "precip": FileReader(
         precip_cfs_path, reader=read_cfs_file, source="CFS", type="forecast"
