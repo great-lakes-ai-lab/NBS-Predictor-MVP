@@ -17,7 +17,6 @@ __all__ = [
     # Classes
     "VAR",
     "NARX",
-    "RollingVAR",
 ]
 
 

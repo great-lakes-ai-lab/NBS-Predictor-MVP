@@ -12,11 +12,11 @@ from src.constants import (
 )
 
 # historical
-runoff_hist_path = DATA_DIR / "historical" / "runoff_glerl_mic_hur_combined.csv"
-rnbs_hist_path = DATA_DIR / "historical" / "rnbs_glcc.csv"
-precip_hist_path = DATA_DIR / "historical" / "pcp_glerl_lakes_mic_hur_combined.csv"
-evap_hist_path = DATA_DIR / "historical" / "evap_glerl_lakes_mic_hur_combined.csv"
-water_level_hist_path = DATA_DIR / "historical" / "wl_glcc.csv"
+runoff_hist_path = DATA_DIR / "glcc" / "runoff_glerl_mic_hur_combined.csv"
+rnbs_hist_path = DATA_DIR / "glcc" / "rnbs_glcc.csv"
+precip_hist_path = DATA_DIR / "glcc" / "pcp_glerl_lakes_mic_hur_combined.csv"
+evap_hist_path = DATA_DIR / "glcc" / "evap_glerl_lakes_mic_hur_combined.csv"
+water_level_hist_path = DATA_DIR / "glcc" / "wl_glcc.csv"
 
 
 # CFSR
