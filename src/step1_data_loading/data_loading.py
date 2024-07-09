@@ -3,7 +3,6 @@ import re
 from functools import partial
 from typing import List, Union
 
-import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -11,12 +10,12 @@ from src.constants import (
     DATA_DIR,
 )
 
-# historical
-runoff_hist_path = DATA_DIR / "historical" / "runoff_glerl_mic_hur_combined.csv"
-rnbs_hist_path = DATA_DIR / "historical" / "rnbs_glcc.csv"
-precip_hist_path = DATA_DIR / "historical" / "pcp_glerl_lakes_mic_hur_combined.csv"
-evap_hist_path = DATA_DIR / "historical" / "evap_glerl_lakes_mic_hur_combined.csv"
-water_level_hist_path = DATA_DIR / "historical" / "wl_glcc.csv"
+# glcc
+runoff_hist_path = DATA_DIR / "GLCC" / "runoff_glerl_mic_hur_combined.csv"
+rnbs_hist_path = DATA_DIR / "GLCC" / "rnbs_glcc.csv"
+precip_hist_path = DATA_DIR / "GLCC" / "pcp_glerl_lakes_mic_hur_combined.csv"
+evap_hist_path = DATA_DIR / "GLCC" / "evap_glerl_lakes_mic_hur_combined.csv"
+water_level_hist_path = DATA_DIR / "GLCC" / "wl_glcc.csv"
 
 
 # CFSR
@@ -30,6 +29,9 @@ precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
 temp_cfs_path = DATA_DIR / "CFS" / "CFS_TMP_Basin_Avgs.csv"
 precip_cfs_path = DATA_DIR / "CFS" / "CFS_APCP_Basin_Avgs.csv"
 evap_cfs_path = DATA_DIR / "CFS" / "CFS_EVAP_Basin_Avgs.csv"
+
+
+# L2SWBM
 
 
 # Only interact with the data through the load_data
@@ -47,7 +49,7 @@ name_remap = {
 
 def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
-    Read in historical files. These have a simple format. For a given series, there are 5 columns: date,
+    Read in glcc files. These have a simple format. For a given series, there are 5 columns: date,
     and the 4 great lakes. Once the file is read in, ensure that the columns are in the correct order.
     It is also assumed that the columns will have the following names: "sup", "mic_hur", "eri", "ont".
 
@@ -57,7 +59,7 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
         default options are assumed.
 
     Returns:
-        An Xarray DataArray with the historical data, with "Date" as the leading dimension and "lake" as the
+        An Xarray DataArray with the glcc data, with "Date" as the leading dimension and "lake" as the
         second.
 
     """
@@ -171,26 +173,29 @@ def read_cfs_file(path) -> xr.DataArray:
 
     # remove duplicated rows
     arrays = []
-    lakes = ["Erie", "Huron", "Michigan", "Ontario", "Superior"]
-    for cfs, grp in melted_vars.groupby("cfsrun"):
-        ls = [
-            (j, df.pivot(columns="lake", values="value", index="forecast_date").values)
-            for j, df in grp.groupby("type")
-        ]
+    melted_vars["forecast_step"] = (
+        melted_vars["forecast_date"].dt.to_period("M")
+        - melted_vars["cfsrun"].dt.to_period("M")
+    ).apply(lambda x: x.n)
 
-        type_labels, arr = [_[0] for _ in ls], np.stack([_[1] for _ in ls], axis=-1)
-        out = xr.DataArray(
-            arr[None, ...],
-            dims=["Date", "forecast_step", "lake", "type"],
-            coords={
-                "Date": [cfs],
-                "forecast_step": range(10),
-                "type": type_labels,
-                "lake": [name_remap[lake] for lake in lakes],
-            },
+    types = []
+    for lake_data_type, grp in melted_vars.groupby("type"):
+        arr = xr.concat(
+            [
+                xr.DataArray(
+                    df.pivot(columns="lake", index="cfsrun", values="value").rename(
+                        name_remap, axis=1
+                    )
+                )
+                for step, df in grp.groupby("forecast_step")
+            ],
+            pd.Index(range(10), name="forecast_step"),
         )
-        arrays.append(out)
-    forecast_vals = xr.concat(arrays, dim="Date")
+        arrays.append(arr)
+        types.append(lake_data_type)
+    forecast_vals = xr.concat(arrays, dim=pd.Index(types, name="type")).rename(
+        {"cfsrun": "Date"}
+    )
 
     # need to collapse michigan/huron measurements together into a single lake
     mich_hur = (
@@ -265,10 +270,10 @@ forecast_map = {
 }
 
 input_map = {
-    "rnbs": FileReader(rnbs_hist_path, source="historical", series_name="rnbs_hist"),
+    "rnbs": FileReader(rnbs_hist_path, source="glcc", series_name="rnbs_hist"),
     "precip": [
         expand_dims(
-            FileReader(precip_hist_path, source="historical", series_name="precip_hist")
+            FileReader(precip_hist_path, source="glcc", series_name="precip_hist")
         ),
         FileReader(
             precip_cfsr_path,
@@ -278,9 +283,7 @@ input_map = {
         ),
     ],
     "evap": [
-        expand_dims(
-            FileReader(evap_hist_path, source="historical", series_name="evap_hist")
-        ),
+        expand_dims(FileReader(evap_hist_path, source="glcc", series_name="evap_hist")),
         FileReader(
             evap_cfsr_path,
             reader=read_cfsr_files,
@@ -296,7 +299,7 @@ input_map = {
         ),
     ),
     "water_level": FileReader(
-        water_level_hist_path, source="historical", series_name="water_level"
+        water_level_hist_path, source="glcc", series_name="water_level"
     ),
     "temp": FileReader(
         temp_cfsr_path,
