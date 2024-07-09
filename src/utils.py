@@ -171,7 +171,7 @@ def lag_array(x: np.ndarray, lags=(1,)):
     lag_vals = [
         np.concatenate(
             [
-                np.repeat(np.nan, 4).reshape(-1, 4).repeat(i, axis=0),
+                np.repeat(np.nan, x.shape[1]).reshape(-1, x.shape[1]).repeat(i, axis=0),
                 x[:-i] if i != 0 else x,
             ],
             axis=0,
@@ -184,11 +184,12 @@ def lag_array(x: np.ndarray, lags=(1,)):
 
 @lag_array.register
 def lag_jnp_array(x: jnp.ndarray, lags=(1,)):
+    repeats = x.shape[1]
     lag_vals = [
         (
             jnp.concatenate(
                 [
-                    jnp.repeat(jnp.nan, 4).reshape(-1, 4).repeat(i, axis=0),
+                    jnp.repeat(jnp.nan, repeats).reshape(-1, repeats).repeat(i, axis=0),
                     x[:-i] if i != 0 else x,
                 ],
                 axis=0,
