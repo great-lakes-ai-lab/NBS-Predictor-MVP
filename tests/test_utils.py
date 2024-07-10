@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.step2_preprocessing.preprocessing import XArrayScaler
-from src.utils import create_rnbs_snapshot, acf, lag_vector
+from src.utils import create_rnbs_snapshot, acf, lag_array
 
 
 @pytest.mark.parametrize(
@@ -91,12 +91,22 @@ def test_acf(lake_data, lag):
 @pytest.mark.parametrize("lags", [(1, 2), (1, 5, 10)], ids=["1,2", "1,5,10"])
 def test_lag_var(lake_data, lags):
     rnbs_vect = lake_data.sel(lake="sup", variable="rnbs_hist")
-    lag_return = lag_vector(rnbs_vect, lags=lags)
+    lag_return = lag_array(rnbs_vect, lags=lags)
     assert lag_return.shape == (len(rnbs_vect), len(lags))
 
 
 def test_lag_array(lake_data):
     my_data = lake_data.sel(variable="rnbs_hist")[:10]
-    lagged_data = lag_vector(my_data, lags=(1, 2, 3))
+    lagged_data = lag_array(my_data, lags=(1, 2, 3))
 
-    assert lagged_data.shape == (10, 3, 4)
+    assert lagged_data.shape == (10, 4, 3)
+
+
+def test_lag_array_with_dict(lake_data):
+    lags = {"rnbs_hist": 2, "precip_hist": 3}
+    lagged_data = lag_array(lake_data, lags=lags)
+
+    assert isinstance(lagged_data, list)
+    assert len(lagged_data) == 2
+    for arr, expected in zip(lagged_data, lags.values()):
+        assert arr.shape[-1] == expected + 1

@@ -1,7 +1,10 @@
+import calendar
+
+import numpy as np
 import pandas as pd
 import xarray as xr
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 
 class XArrayScaler(object):
@@ -66,21 +69,116 @@ def scale_features(data):
     )
 
 
-def flatten_array(X: xr.DataArray, lead_dim="Date"):
+class CreateMonthDummies(object):
 
-    # remove any variables/dimensions not found in both the dims and coordinates
-    drop_dims = set(X.dims).symmetric_difference(X.coords.keys())
+    def __init__(self, encoder=None):
+        self.encoder = encoder or OneHotEncoder(
+            categories="auto", sparse_output=False, drop=[1]
+        )
 
-    X_subset = X.drop(drop_dims)
-    # unless stated otherwise, the first dimension is the one to collapse into
-    flatten_dims = [d for d in X_subset.dims if d != lead_dim]
+    def fit(self, X: xr.DataArray, y=None):
+        months = X.indexes["Date"].month.values.reshape(-1, 1)
+        self.encoder.fit(months)
 
-    flattened_df = (
-        X_subset.rename("flattened")
-        .to_dataframe(dim_order=[lead_dim, *flatten_dims])
-        .reset_index()
-        .pivot(index=lead_dim, columns=flatten_dims)
-    )
+    def transform(self, X: xr.DataArray, y=None):
+        months = X.indexes["Date"].month.values.reshape(-1, 1)
+        month_dummies = self.encoder.transform(months)
 
-    flattened_df.columns = ["_".join([*list(t)[1:]]) for t in flattened_df.columns]
-    return xr.DataArray(flattened_df, dims=["Date", "variable"])
+        drop_categories = self.encoder.get_params().get("drop") or []
+
+        coords = {
+            "Date": X.indexes["Date"],
+            "month": [
+                calendar.month_abbr[i]
+                for i in self.encoder.categories_[0]
+                if i not in drop_categories
+            ],
+        }
+
+        return xr.DataArray(month_dummies, dims=["Date", "month"], coords=coords)
+
+
+class SeasonalFeatures(object):
+
+    def __init__(self, period=12):
+        self.period = period
+
+    def fit(self, X: xr.DataArray, y=None):
+        pass
+
+    def transform(self, X: xr.DataArray, y=None):
+        features = np.append(
+            sin_feature(X.indexes["Date"].month.values, self.period).reshape(-1, 1),
+            cos_feature(X.indexes["Date"].month.values, self.period).reshape(-1, 1),
+            axis=1,
+        )
+        return xr.DataArray(
+            features,
+            coords={
+                "Date": X.indexes["Date"],
+                "variable": pd.Index([f"sin_{self.period}", f"cos_{self.period}"]),
+            },
+            dims=["Date", "variable"],
+        )
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        return self.transform(X)
+
+
+def cos_feature(x, period):
+    return np.cos(x / period * 2 * np.pi)
+
+
+def sin_feature(x, period):
+    return np.sin(x / period * 2 * np.pi)
+
+
+class XArrayAdapter(object):
+
+    def __init__(self, sklearn_preprocessor, feature_prefix="f"):
+        super().__init__()
+        self.sklearn_preprocessor = sklearn_preprocessor
+        self.feature_prefix = feature_prefix
+
+    def fit(self, X: xr.DataArray, y=None):
+        self.sklearn_preprocessor.fit(X, y)
+
+    def transform(self, X: xr.DataArray, y=None) -> xr.DataArray:
+        """
+        Runs the transform method of the sklearn preprocessor, but returns
+        the coordinates and dimensions of the original data. Note that this assumes that new
+        dimensions / columns are not created
+        """
+        transformed_X = self.sklearn_preprocessor.transform(X)
+        return xr.DataArray(
+            transformed_X,
+            coords={
+                "Date": X.coords["Date"],
+                "variable": [
+                    f"{self.feature_prefix}_{i}" for i in range(transformed_X.shape[1])
+                ],
+            },
+            dims=["Date", "variable"],
+        )
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X, y)
+        return self.transform(X)
+
+
+class XArrayUnion(object):
+
+    def __init__(self, transformers):
+        self.transformers = transformers
+
+    def transform(self, X: xr.DataArray, y=None):
+        values = [transformer.transform(X) for _, transformer in self.transformers]
+        return xr.concat(values, dim="variable")
+
+    def fit(self, X: xr.DataArray, y=None):
+        for _, transformer in self.transformers:
+            transformer.fit(X, y)
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X, y)
+        return self.transform(X)

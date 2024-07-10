@@ -1,17 +1,29 @@
 import datetime as dt
 import logging
-from functools import partial, reduce
-from typing import Union
+from functools import partial, reduce, singledispatch
+from typing import Union, List, Tuple, Dict, Iterable
 
 import numpy as np
-from jax import numpy as jnp
 import pandas as pd
 import torch
 import xarray as xr
 from dateutil.relativedelta import relativedelta
+from jax import numpy as jnp
 from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "convert_year_to_date",
+    "percentile",
+    "filter_model_results",
+    "acf",
+    "lag_array",
+    "setup_logger",
+    "flatten_array",
+    "create_rnbs_snapshot",
+    "ContextFilter",
+]
 
 
 def convert_year_to_date(year: Union[str, int, dt.date]):
@@ -31,6 +43,7 @@ def percentile(q):
 
 
 class create_rnbs_snapshot(object):
+    # TODO: this is largely redundant with sklearn TimeSeriesSplit object
     def __init__(
         self,
         rnbs_data: Union[pd.Series, xr.DataArray],
@@ -153,7 +166,43 @@ def acf(x, max_lag=20):
     ).set_index("index")
 
 
-def lag_series(x: pd.Series, lags=(1)):
+@singledispatch
+def lag_array(x: np.ndarray, lags=(1,)):
+    lag_vals = [
+        np.concatenate(
+            [
+                np.repeat(np.nan, x.shape[1]).reshape(-1, x.shape[1]).repeat(i, axis=0),
+                x[:-i] if i != 0 else x,
+            ],
+            axis=0,
+        )
+        for i in lags
+    ]
+    values = np.stack(lag_vals, axis=len(x.shape))
+    return values
+
+
+@lag_array.register
+def lag_jnp_array(x: jnp.ndarray, lags=(1,)):
+    repeats = x.shape[1]
+    lag_vals = [
+        (
+            jnp.concatenate(
+                [
+                    jnp.repeat(jnp.nan, repeats).reshape(-1, repeats).repeat(i, axis=0),
+                    x[:-i] if i != 0 else x,
+                ],
+                axis=0,
+            )
+        )
+        for i in lags
+    ]
+    values = jnp.stack(lag_vals, axis=len(x.shape))
+    return values
+
+
+@lag_array.register
+def lag_series(x: pd.Series, lags=(1,)):
     """Create a lagged vector from a given series. Currently only works on named series.
     Args:
         x (pd.Series): A pandas series
@@ -179,33 +228,47 @@ def lag_series(x: pd.Series, lags=(1)):
     return lagged_var
 
 
-def lag_vector(x: Union[pd.Series, np.array], lags=(1)):
+@lag_array.register
+def lag_xarray(
+    x: xr.DataArray, lags: Union[Tuple[int], Dict[int, Iterable]] = (1,)
+) -> Union[xr.DataArray, List[xr.DataArray]]:
+    """
+    Lag xarray function called on data arrays. Because XArray includes dimension information, a dictionary of lags
+    can be passed
+    Args:
+        x (xr.DataArray): Data Array to get lags for
+        lags: Dictionary of lags, either integers (where a range from 0 to the integer given is implied) or iterables
+              of the exact lag values to calculate
+    Returns: A lagged Xarray of the same dimensions
 
-    fn_lookup = {pd.Series: lag_series, np.ndarray: lag_array, xr.DataArray: lag_xarray}
-    return fn_lookup.get(x.__class__, lag_array)(x, lags)
+    """
 
+    # if a dictionary of lags is passed, it is assumed that the "variable" dimension is present and the lags
+    # describe the lag to apply to those dimensions (recursive function)
+    if isinstance(lags, dict):
+        lagged_vars = []
+        for var, max_lag in lags.items():
+            if isinstance(max_lag, int):
+                lag_range = range(0, max_lag + 1)
+            else:
+                # if not an integer, assume it is an iterator
+                lag_range = max_lag
 
-def lag_array(x: jnp.array, lags=(1)):
-    lag_vals = [
-        jnp.concatenate(
-            [jnp.repeat(np.nan, 4).reshape(-1, 4).repeat(i, axis=0), x[:-i]], axis=0
-        )
-        for i in lags
-    ]
-    values = jnp.stack(lag_vals, axis=len(x.shape))
-    return values
+            # recursive function call to lag each requested item
+            lagged_vars.append(lag_array(x.sel(variable=var), lags=lag_range))
+        return lagged_vars
+    else:
 
+        # given the range of lags, get the lagged values and then return an XArray with those dimensions
+        lag_vect = [x.shift(Date=j).rename(f"lag_{j}") for j in lags]
 
-def lag_xarray(x: xr.DataArray, lags=(1)):
-    lag_vect = [x.shift(Date=j).rename(f"lag_{j}") for j in lags]
+        lagged_data = xr.DataArray(
+            lag_vect,
+            dims=["lags", *x.dims],
+            coords={"lags": list(lags), **x.coords},
+        ).transpose(*x.dims, "lags")
 
-    lagged_data = xr.DataArray(
-        lag_vect,
-        dims=["lags", *x.dims],
-        coords={"lags": list(lags), **x.coords},
-    ).transpose("Date", ...)
-
-    return lagged_data
+        return lagged_data
 
 
 def setup_logger(lake, year):
@@ -236,3 +299,31 @@ class ContextFilter(logging.Filter):
     def filter(self, record):
         record.lake = self.lake
         return True
+
+
+@singledispatch
+def flatten_array(X: xr.DataArray, lead_dim="Date"):
+
+    # remove any variables/dimensions not found in both the dims and coordinates
+    drop_dims = set(X.dims).symmetric_difference(X.coords.keys())
+
+    X_subset = X.drop(drop_dims) if drop_dims else X
+    # unless stated otherwise, the first dimension is the one to collapse into
+    flatten_dims = [d for d in X_subset.dims if d != lead_dim]
+
+    flattened_df = (
+        X_subset.rename("flattened")
+        .to_dataframe(dim_order=[lead_dim, *flatten_dims])
+        .reset_index()
+        .pivot(index=lead_dim, columns=flatten_dims)
+    )
+
+    flattened_df.columns = [
+        "_".join([str(_) for _ in t if _ != "flattened"]) for t in flattened_df.columns
+    ]
+    return xr.DataArray(flattened_df, dims=["Date", "variable"])
+
+
+@flatten_array.register
+def flatten_np_array(X: Union[np.ndarray, jnp.ndarray], lead_dim=0):
+    return X.reshape(X.shape[lead_dim], -1)

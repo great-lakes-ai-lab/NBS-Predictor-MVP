@@ -1,21 +1,22 @@
-import numpy as np
-from typing import Union
-from functools import reduce
-
 import calendar
+from functools import reduce
+from typing import Union
+
+import jax
+import numpy as np
 import numpyro
 from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro.contrib.control_flow import scan
-
 from numpyro.infer.reparam import LocScaleReparam
 
 from src.step3_modeling.modeling import NumpyroModel
-from src.utils import lag_vector
+from src.utils import lag_array, flatten_array
 
 __all__ = [
     # Classes
     "VAR",
+    "NARX",
 ]
 
 
@@ -75,7 +76,7 @@ class VAR(NumpyroModel):
 
     @staticmethod
     @numpyro.handlers.reparam(config={"intercept": LocScaleReparam(0)})
-    def model(y, y_index, lags, covariates=None, future=0):
+    def model(y, y_index, lags, covariates, future=0):
         """
         Autoregressive process.
         Args:
@@ -91,9 +92,22 @@ class VAR(NumpyroModel):
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
         nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
 
+        ar_lag = lags.get("y")
+        max_lag = reduce(max, lags.values())
+
+        lagged_covars = [
+            lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(0, lag))[
+                max_lag:
+            ]
+            for covar, lag in lags.items()
+            if covar != "y"
+        ]
+
         covar_alphas = [
             numpyro.sample(
-                f"{cov}_alpha", dist.Laplace(0, 0.2), sample_shape=(4, 4, lag)
+                f"{cov}_alpha",
+                dist.Normal(0, 0.2),
+                sample_shape=(4, 4, lag),  # lag at 0
             )
             for cov, lag in lags.items()
         ]
@@ -108,8 +122,6 @@ class VAR(NumpyroModel):
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
         sigma = jnp.sqrt(theta)
         L_Omega = sigma[..., None] * l_omega
-
-        ar_lag = lags.get("y")
 
         def transition_fn(carry, covars):
             prev_y = carry
@@ -137,20 +149,10 @@ class VAR(NumpyroModel):
                 new_vals = y_t.reshape(1, -1)
             return new_vals, y_t
 
-        prev = y[:ar_lag]
-        months = jnp.array(y_index.month - 1)
+        prev = y[:max_lag][-ar_lag:]
         # need to subtract one because indexing starts at 0.
+        months = jnp.array(y_index.month - 1)
         initial_values = prev
-
-        max_lag = reduce(max, lags.values())
-
-        lagged_covars = [
-            lag_vector(
-                jnp.array(covariates.sel(variable=covar)), np.arange(1, lag + 1)
-            )[max_lag:]
-            for covar, lag in lags.items()
-            if covar != "y"
-        ]
 
         covars = (months[max_lag:], *lagged_covars)
 
@@ -158,6 +160,109 @@ class VAR(NumpyroModel):
             y_fit = y[:-future]
         else:
             y_fit = y
+
+        with numpyro.handlers.condition(data={"y": y_fit[max_lag:]}):
+            _, ys = scan(transition_fn, initial_values, covars)
+
+        if future > 0:
+            numpyro.deterministic("y_forecast", ys[-future:])
+
+
+class NARX(NumpyroModel):
+
+    def __init__(self, lags=None, num_chains=4, num_samples=1000, num_warmup=1000):
+        super().__init__(lags, num_chains, num_samples, num_warmup)
+        self.lags = lags or {"y": 3, "evap_hist": 2, "precip_hist": 2}
+
+    @property
+    def name(self):
+        return "NARX"
+
+    @property
+    def coords(self):
+        pass
+
+    @property
+    def dims(self):
+        pass
+
+    @staticmethod
+    def model(y, y_index, lags, covariates, future=0):
+        """
+        Autoregressive process.
+        Args:
+            y: the time series to fit
+            covariates: An XArray of covariates for use in the model. Leading index should be date, second index should be lake, and the third index is the actual covariate values.
+            lags: A dictionary indicating which covariates have which lags
+            future: How many periods to run into the future.
+
+        Returns:
+            None - samples
+
+        """
+        nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
+
+        ar_lag = lags.get("y")
+        max_lag = reduce(max, lags.values())
+
+        theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
+
+        l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
+        sigma = jnp.sqrt(theta)
+        L_Omega = sigma[..., None] * l_omega
+
+        input_dim = reduce(lambda a, x: a + 4 * x, lags.values(), 0)
+        h1 = 10
+        output_dim = 4
+
+        # first layer of the neural network
+        w1 = numpyro.sample(
+            "w1", dist.Normal(jnp.zeros((input_dim, h1)), jnp.ones((input_dim, h1)))
+        )
+        b1 = numpyro.sample("b1", dist.Normal(jnp.zeros(h1), jnp.ones(h1)))
+
+        w2 = numpyro.sample(
+            "w2",
+            dist.Normal(jnp.zeros((h1, output_dim)), jnp.ones((h1, output_dim))),
+        )
+        b2 = numpyro.sample(
+            "b2", dist.Normal(jnp.zeros(output_dim), jnp.ones(output_dim))
+        )
+
+        lagged_covars = [
+            flatten_array(
+                lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(0, lag))[
+                    max_lag:
+                ]
+            )
+            for covar, lag in lags.items()
+            if covar != "y"
+        ]
+        covars = jnp.concatenate(lagged_covars, axis=-1)
+
+        def transition_fn(carry, covars):
+            prev_y = carry
+
+            input_vals = jnp.concatenate([carry.reshape(-1), covars], axis=-1)
+            z1 = jax.nn.relu(jnp.matmul(input_vals, w1) + b1)
+            z2 = jnp.matmul(z1, w2) + b2
+
+            y_t = numpyro.sample(
+                "y", dist.MultivariateStudentT(df=nu, loc=z2, scale_tril=L_Omega)
+            )
+
+            if ar_lag > 1:
+                new_vals = jnp.append(prev_y[1:], y_t.reshape(1, -1), axis=0)
+            else:
+                new_vals = y_t.reshape(1, -1)
+            return new_vals, y_t
+
+        initial_values = jnp.array(y[:max_lag][-ar_lag:])
+
+        if future > 0:
+            y_fit = jnp.array(y[:-future])
+        else:
+            y_fit = jnp.array(y)
 
         with numpyro.handlers.condition(data={"y": y_fit[max_lag:]}):
             _, ys = scan(transition_fn, initial_values, covars)

@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 
 import arviz as az
+import numpy as np
 import xarray as xr
 from jax import numpy as jnp
 from jax.random import PRNGKey
@@ -9,7 +10,7 @@ from numpyro.infer import NUTS, MCMC, Predictive
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from src.step4_postprocessing.postprocessing import output_forecast_results
+from src.step4_postprocessing import output_forecast_results
 
 __all__ = [
     # Classes
@@ -26,6 +27,11 @@ class ModelBase(ABC):
 
     def __init__(self):
         super().__init__()
+
+    @property
+    @abstractmethod
+    def name(self):
+        pass
 
     @abstractmethod
     def fit(self, X, y, *args, **kwargs):
@@ -112,7 +118,7 @@ class NumpyroModel(ModelBase):
         self.lakes, y_index = y.indexes["lake"], y.indexes["Date"]
 
         if rng_key is None:
-            rng_key = PRNGKey(61)
+            rng_key = self.get_rng_key()
 
         y = jnp.array(y)
         kernel = NUTS(self.model)
@@ -135,7 +141,7 @@ class NumpyroModel(ModelBase):
 
     @staticmethod
     @abstractmethod
-    def model(y, y_index, lags, covariates, future):
+    def model(y, y_index, lags, covariates, future=0):
         """
         Model method. Must be static to work with Numpyro MCMC.
         Args:
@@ -163,7 +169,7 @@ class NumpyroModel(ModelBase):
         """
         y_index = y.indexes["Date"]
         if rng_key is None:
-            rng_key = PRNGKey(22)
+            rng_key = self.get_rng_key()
 
         # Using future, chop the last `num_steps_forward` values off and treat them as unknown. This allows
         # the covariates to align with the test set
@@ -184,6 +190,9 @@ class NumpyroModel(ModelBase):
 
         results = output_forecast_results(forecasts, y_index[-forecast_steps:])
         return results
+
+    def get_rng_key(self):
+        return PRNGKey(np.random.randint(1e3))
 
 
 def split_data(data, target_column):

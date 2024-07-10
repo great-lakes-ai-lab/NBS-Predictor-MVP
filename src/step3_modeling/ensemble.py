@@ -1,4 +1,7 @@
+import numpy as np
 import xarray as xr
+from sklearn.ensemble import BaggingRegressor
+from sklearn.linear_model import LinearRegression
 
 from src.step3_modeling.modeling import ModelBase
 from src.step4_postprocessing.postprocessing import output_forecast_results
@@ -6,6 +9,7 @@ from src.step4_postprocessing.postprocessing import output_forecast_results
 __all__ = [
     # Classes
     "DefaultEnsemble",
+    "BaggedXArrayRegressor",
 ]
 
 
@@ -49,6 +53,52 @@ class DefaultEnsemble(ModelBase):
 
         formatted_output = output_forecast_results(forecasts, forecast_index)
         return formatted_output
+
+    def save(self, path):
+        pass
+
+    @classmethod
+    def load(cls, path):
+        pass
+
+
+class BaggedXArrayRegressor(ModelBase):
+    """
+    Take any given Sklearn regressor model and wrap it into a BaggedRegressor to
+    get a simple empirical estimate of standard deviation and quantile of predictions
+    """
+
+    def __init__(self, sklearn_regressor=None, **bagging_kwargs):
+        super().__init__()
+        self.regressor = sklearn_regressor or LinearRegression()
+        self.bagging_kwargs = bagging_kwargs or {"n_estimators": 250, "n_jobs": -1}
+        self.model = BaggingRegressor(estimator=self.regressor, **bagging_kwargs)
+
+    @property
+    def name(self):
+        bagging_str = [f"{k}={v}" for k, v in self.bagging_kwargs.items()]
+        return f"BaggedXarrayRegressor({self.regressor.__repr__()}, {', '.join(bagging_str)})"
+
+    def fit(self, X, y, **kwargs):
+        self.model.fit(X, y)
+
+    def predict(
+        self, X, y, forecast_steps=12, alpha=0.05, *args, **kwargs
+    ) -> xr.DataArray:
+        predictions = np.stack([m.predict(X) for m in self.model.estimators_], axis=-1)
+
+        output_array = np.stack(
+            [
+                predictions.mean(axis=-1),
+                *np.quantile(predictions, q=[alpha / 2, 1 - alpha / 2], axis=-1),
+                predictions.std(axis=-1),
+            ],
+            axis=-1,
+        )[-forecast_steps:]
+
+        return output_forecast_results(
+            output_array, forecast_labels=X.indexes["Date"][-forecast_steps:]
+        )
 
     def save(self, path):
         pass

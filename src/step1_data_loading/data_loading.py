@@ -8,14 +8,15 @@ import xarray as xr
 
 from src.constants import (
     DATA_DIR,
+    lake_order,
 )
 
 # historical
-runoff_hist_path = DATA_DIR / "historical" / "runoff_glerl_mic_hur_combined.csv"
-rnbs_hist_path = DATA_DIR / "historical" / "rnbs_glcc.csv"
-precip_hist_path = DATA_DIR / "historical" / "pcp_glerl_lakes_mic_hur_combined.csv"
-evap_hist_path = DATA_DIR / "historical" / "evap_glerl_lakes_mic_hur_combined.csv"
-water_level_hist_path = DATA_DIR / "historical" / "wl_glcc.csv"
+runoff_hist_path = DATA_DIR / "glcc" / "runoff_glerl_mic_hur_combined.csv"
+rnbs_hist_path = DATA_DIR / "glcc" / "rnbs_glcc.csv"
+precip_hist_path = DATA_DIR / "glcc" / "pcp_glerl_lakes_mic_hur_combined.csv"
+evap_hist_path = DATA_DIR / "glcc" / "evap_glerl_lakes_mic_hur_combined.csv"
+water_level_hist_path = DATA_DIR / "glcc" / "wl_glcc.csv"
 
 
 # CFSR
@@ -29,8 +30,6 @@ precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
 __all__ = [
     "load_data",
 ]
-
-column_order = ["sup", "mic_hur", "eri", "ont"]
 
 
 def read_historical_files(path, reader_args=None) -> xr.DataArray:
@@ -51,7 +50,7 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
 
     reader_args = reader_args or {"index_col": "Date", "date_format": "%Y%m%d"}
-    df = pd.read_csv(path, **reader_args)[column_order]
+    df = pd.read_csv(path, **reader_args)[lake_order]
     return xr.DataArray(
         df,
         dims=["Date", "lake"],
@@ -144,11 +143,11 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
             )
             .drop(["Michigan", "Huron"], axis=1)
             .rename({"Erie": "eri", "Ontario": "ont", "Superior": "sup"}, axis=1)
-        )[column_order]
+        )[lake_order]
 
         lake_x_array = xr.DataArray(
             array,
-            coords={"Date": array.index, "lake": column_order},
+            coords={"Date": array.index, "lake": lake_order},
             dims=["Date", "lake"],
             name=grp,
         )
