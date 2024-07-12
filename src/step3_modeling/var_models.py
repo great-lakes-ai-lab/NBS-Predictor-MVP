@@ -36,7 +36,7 @@ class VAR(NumpyroModel):
     ):
         super().__init__()
         if lags is None:
-            self.lags = {"y": 3, "precip_hist": 6}
+            self.lags = {"y": 3, "precip": 6}
         else:
             self.lags = lags
         self.num_chains = num_chains
@@ -172,7 +172,7 @@ class NARX(NumpyroModel):
 
     def __init__(self, lags=None, num_chains=4, num_samples=1000, num_warmup=1000):
         super().__init__(lags, num_chains, num_samples, num_warmup)
-        self.lags = lags or {"y": 3, "evap_hist": 2, "precip_hist": 2}
+        self.lags = lags or {"y": 3, "evap": 2, "precip": 2}
 
     @property
     def name(self):

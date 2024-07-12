@@ -5,7 +5,7 @@ from sklearn.gaussian_process import kernels as k
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
-from src.step2_preprocessing.preprocessing import XArrayScaler
+from src.step2_preprocessing.preprocessing import XArrayStandardScaler
 from src.utils import flatten_array
 from src.step3_modeling.ensemble import DefaultEnsemble, BaggedXArrayRegressor
 from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedSklearnGP
@@ -21,18 +21,16 @@ modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
     "MVN": LakeMVT(num_warmup=0, num_samples=3, num_chains=1),
     "VAR": VAR(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2}),
-    "NARX": NARX(
-        num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip_hist": 2}
-    ),
+    "NARX": NARX(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip": 2}),
     "VARX": VAR(
         num_warmup=0,
         num_samples=3,
         num_chains=1,
-        lags={"y": 1, "precip_hist": 1, "evap_hist": 1},
+        lags={"y": 1, "precip": 1, "evap": 1},
     ),
     "GP": Pipeline(
         steps=[
-            ("scale", XArrayScaler()),
+            ("scale", XArrayStandardScaler()),
             ("flatten", FunctionTransformer(flatten_array)),
             ("gp", SklearnGPModel(kernel=1.0 * k.Matern())),
         ]
@@ -62,13 +60,13 @@ def preprocessor():
     Returns:
 
     """
-    return Pipeline([("scaler", XArrayScaler())])
+    return Pipeline([("scaler", XArrayStandardScaler())])
 
 
 @pytest.mark.skipif(skip_tests, reason="Skip kernel fits")
 @pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
 def test_model_fit(model: ModelBase, snapshot, preprocessor):
-    y_scaler = XArrayScaler()
+    y_scaler = XArrayStandardScaler()
     train_y = y_scaler.fit_transform(snapshot.train_y)
     test_y = y_scaler.transform(snapshot.test_y)
     full_pipeline = Pipeline([("preprocess", preprocessor), ("model", model)])

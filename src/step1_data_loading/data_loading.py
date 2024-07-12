@@ -11,11 +11,11 @@ from src.constants import (
 )
 
 # glcc
-runoff_hist_path = DATA_DIR / "GLCC" / "runoff_glerl_mic_hur_combined.csv"
-rnbs_hist_path = DATA_DIR / "GLCC" / "rnbs_glcc.csv"
-precip_hist_path = DATA_DIR / "GLCC" / "pcp_glerl_lakes_mic_hur_combined.csv"
-evap_hist_path = DATA_DIR / "GLCC" / "evap_glerl_lakes_mic_hur_combined.csv"
-water_level_hist_path = DATA_DIR / "GLCC" / "wl_glcc.csv"
+runoff_glcc_path = DATA_DIR / "GLCC" / "runoff_glerl_mic_hur_combined.csv"
+rnbs_glcc_path = DATA_DIR / "GLCC" / "rnbs_glcc.csv"
+precip_glcc_path = DATA_DIR / "GLCC" / "pcp_glerl_lakes_mic_hur_combined.csv"
+evap_glcc_path = DATA_DIR / "GLCC" / "evap_glerl_lakes_mic_hur_combined.csv"
+water_level_glcc_path = DATA_DIR / "GLCC" / "wl_glcc.csv"
 
 
 # CFSR
@@ -47,7 +47,7 @@ name_remap = {
 }  # mic_hur is done while creating the column
 
 
-def read_historical_files(path, reader_args=None) -> xr.DataArray:
+def read_glcc_files(path, reader_args=None) -> xr.DataArray:
     """
     Read in glcc files. These have a simple format. For a given series, there are 5 columns: date,
     and the 4 great lakes. Once the file is read in, ensure that the columns are in the correct order.
@@ -216,11 +216,7 @@ def read_cfs_file(path) -> xr.DataArray:
 class FileReader(object):
 
     def __init__(
-        self,
-        path,
-        series_name=None,
-        reader: callable = read_historical_files,
-        **metadata
+        self, path, series_name=None, reader: callable = read_glcc_files, **metadata
     ):
         """
         Helper class to connect a particular CSV reader and an Xarray formatter. There are default
@@ -283,10 +279,10 @@ forecast_map = {
 }
 
 input_map = {
-    "rnbs": FileReader(rnbs_hist_path, source="glcc", series_name="rnbs_hist"),
+    "rnbs": FileReader(rnbs_glcc_path, source="glcc", series_name="rnbs_hist"),
     "precip": [
         expand_dims(
-            FileReader(precip_hist_path, source="glcc", series_name="precip_hist")
+            FileReader(precip_glcc_path, source="glcc", series_name="precip_hist")
         ),
         FileReader(
             precip_cfsr_path,
@@ -296,7 +292,7 @@ input_map = {
         ),
     ],
     "evap": [
-        expand_dims(FileReader(evap_hist_path, source="glcc", series_name="evap_hist")),
+        expand_dims(FileReader(evap_glcc_path, source="glcc", series_name="evap_hist")),
         FileReader(
             evap_cfsr_path,
             reader=read_cfsr_files,
@@ -305,14 +301,14 @@ input_map = {
         ),
     ],
     "runoff": FileReader(
-        runoff_hist_path,
+        runoff_glcc_path,
         reader=partial(
-            read_historical_files,
+            read_glcc_files,
             reader_args={"date_format": "%Y%m", "index_col": "Date"},
         ),
     ),
     "water_level": FileReader(
-        water_level_hist_path, source="glcc", series_name="water_level"
+        water_level_glcc_path, source="glcc", series_name="water_level"
     ),
     "temp": FileReader(
         temp_cfsr_path,

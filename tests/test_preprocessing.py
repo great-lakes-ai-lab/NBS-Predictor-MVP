@@ -1,10 +1,11 @@
 from xarray.testing import assert_allclose
 
-from src.step2_preprocessing.preprocessing import XArrayScaler, flatten_array
+from src.step2_preprocessing.preprocessing import XArrayStandardScaler
+from src.utils import flatten_array
 
 
 def test_default_scaling(lake_data):
-    scaler = XArrayScaler()
+    scaler = XArrayStandardScaler()
     scaled_xarray = scaler.fit_transform(lake_data)
 
     inversed = scaler.inverse_transform(scaled_xarray)
@@ -14,7 +15,7 @@ def test_default_scaling(lake_data):
 
 
 def test_single_series_scaling(lake_data):
-    scaler = XArrayScaler()
+    scaler = XArrayStandardScaler()
     subset = lake_data.sel(variable="runoff")
     scaled_xarray = scaler.fit_transform(subset)
 

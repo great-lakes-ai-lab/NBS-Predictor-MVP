@@ -4,13 +4,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
 
 
-class XArrayScaler(object):
+class XArrayStandardScaler(object):
 
     def __init__(self):
-        self.series_dim = None
         self.is_fitted = False
         self.means = None
         self.std = None
@@ -19,7 +18,6 @@ class XArrayScaler(object):
 
     def fit(self, X: xr.DataArray, y=None):
         assert X.dims[0] == "Date"
-        self.series_dim = X.dims[-1]  # iterate over the last dim
 
         self.means = X.mean("Date")
         self.std = X.std("Date")
@@ -35,6 +33,34 @@ class XArrayScaler(object):
 
     def inverse_transform(self, X: xr.DataArray, y=None):
         return X * self.std + self.means
+
+
+class MinMaxScaler(object):
+
+    def __init__(self):
+        self.is_fitted = False
+        self.mins = None
+        self.maxes = None
+        self.dims = None
+        self.coords = None
+
+    def fit(self, X: xr.DataArray, y=None):
+        assert X.dims[0] == "Date"
+
+        self.mins = X.min("Date")
+        self.maxes = X.max("Date")
+
+        self.is_fitted = True
+
+    def transform(self, X: xr.DataArray, y=None):
+        return (X - self.mins) / (self.maxes - self.mins)
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X)
+        return self.transform(X)
+
+    def inverse_transform(self, X: xr.DataArray, y=None):
+        return X * (self.maxes - self.mins) + self.mins
 
 
 def handle_missing_values(data):
@@ -62,7 +88,7 @@ def scale_features(data):
     Returns:
     - pd.DataFrame: Data with scaled features
     """
-    scaler = StandardScaler()
+    scaler = XArrayStandardScaler()
     data_scaled = scaler.fit_transform(data.select_dtypes(include=["float64", "int64"]))
     return pd.DataFrame(
         data_scaled, columns=data.select_dtypes(include=["float64", "int64"]).columns
@@ -166,7 +192,7 @@ class XArrayAdapter(object):
         return self.transform(X)
 
 
-class XArrayUnion(object):
+class XArrayFeatureUnion(object):
 
     def __init__(self, transformers):
         self.transformers = transformers

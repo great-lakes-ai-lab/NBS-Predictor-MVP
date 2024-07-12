@@ -3,8 +3,8 @@ import datetime as dt
 import pandas as pd
 import pytest
 
-from src.step2_preprocessing.preprocessing import XArrayScaler
-from src.utils import create_rnbs_snapshot, acf, lag_vector
+from src.step2_preprocessing.preprocessing import XArrayStandardScaler
+from src.utils import create_rnbs_snapshot, acf, lag_array
 
 
 @pytest.mark.parametrize(
@@ -30,8 +30,8 @@ def test_snapshot_scaling(lake_data):
         split_date=dt.datetime(1999, 12, 1),
         covariates=lake_data.sel(variable=["runoff", "precip"]),
     )
-    x_scaler = XArrayScaler()
-    y_scaler = XArrayScaler()
+    x_scaler = XArrayStandardScaler()
+    y_scaler = XArrayStandardScaler()
 
     old_max = local_snapshot.train_x.max()
 
@@ -88,12 +88,12 @@ def test_acf(lake_data, lag):
 @pytest.mark.parametrize("lags", [(1, 2), (1, 5, 10)], ids=["1,2", "1,5,10"])
 def test_lag_var(lake_data, lags):
     rnbs_vect = lake_data.sel(lake="sup", variable="rnbs")
-    lag_return = lag_vector(rnbs_vect, lags=lags)
+    lag_return = lag_array(rnbs_vect, lags=lags)
     assert lag_return.shape == (len(rnbs_vect), len(lags))
 
 
 def test_lag_array(lake_data):
     my_data = lake_data.sel(variable="rnbs")[:10]
-    lagged_data = lag_vector(my_data, lags=(1, 2, 3))
+    lagged_data = lag_array(my_data, lags=(1, 2, 3))
 
-    assert lagged_data.shape == (10, 3, 4)
+    assert lagged_data.shape == (10, 4, 3)
