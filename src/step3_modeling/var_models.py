@@ -10,8 +10,8 @@ from numpyro import distributions as dist
 from numpyro.contrib.control_flow import scan
 from numpyro.infer.reparam import LocScaleReparam
 
-from src.step3_modeling.modeling import NumpyroModel
-from src.utils import lag_array, flatten_array
+from step3_modeling.modeling import NumpyroModel
+from utils import lag_array, flatten_array
 
 __all__ = [
     # Classes

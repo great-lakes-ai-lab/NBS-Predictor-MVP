@@ -6,7 +6,7 @@ from typing import List, Union
 import pandas as pd
 import xarray as xr
 
-from src.constants import (
+from constants import (
     DATA_DIR,
     lake_order,
 )
@@ -34,19 +34,24 @@ __all__ = [
 
 def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
-    Read in historical files. These have a simple format. For a given series, there are 5 columns: date,
-    and the 4 great lakes. Once the file is read in, ensure that the columns are in the correct order.
-    It is also assumed that the columns will have the following names: "sup", "mic_hur", "eri", "ont".
+    Read in historical data files containing Great Lakes series data. Each file should contain
+    columns for the date and lake levels ordered by "sup", "mic_hur", "eri", "ont".
 
     Args:
-        path: The path to the file
-        reader_args: Any arguments that are passed to pd.read_csv. If none are provided,
-        default options are assumed.
+        path (str or Path): The file path to the data file to be read.
+        reader_args (dict, optional): Arguments to pass to `pd.read_csv`. Defaults to reading "Date"
+            as the index column with the format "%Y%m%d".
 
     Returns:
-        An Xarray DataArray with the historical data, with "Date" as the leading dimension and "lake" as the
-        second.
+        xr.DataArray: An Xarray DataArray with Lake data, dimensions as ["Date", "lake"].
 
+    Raises:
+        FileNotFoundError: If the file at the specified path does not exist.
+        ValueError: If the CSV file format is incorrect or contains invalid data.
+
+    Example:
+        >>> read_historical_files('path/to/historical_data.csv')
+        <xarray.DataArray ...>  # output format
     """
 
     reader_args = reader_args or {"index_col": "Date", "date_format": "%Y%m%d"}
@@ -59,6 +64,18 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
 
 
 class FileReader(object):
+    """
+    A class to encapsulate the process of reading CSV data and converting it into Xarray DataArrays.
+
+    Args:
+        reader (callable): The function to call for reading in CSV data. It should return an xarray.DataArray.
+            Defaults to `read_historical_files`.
+        **metadata (dict): A dictionary of metadata attributes to attach to the resulting Xarray object.
+
+    Example:
+        >>> file_reader = FileReader()
+        >>> data_array = file_reader('path/to/data.csv', series_name='lake_levels')
+    """
 
     def __init__(self, reader=read_historical_files, **metadata):
         """

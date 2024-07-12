@@ -3,8 +3,8 @@ import numpyro
 from jax import numpy as jnp
 from numpyro import distributions as dist
 
-from src.constants import lake_order
-from src.step3_modeling.modeling import NumpyroModel
+from constants import lake_order
+from step3_modeling.modeling import NumpyroModel
 
 
 class BayesNN(NumpyroModel):
