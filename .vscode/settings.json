@@ -1,0 +1,10 @@
+{
+    "python.pythonPath": "/Users/dannes/miniconda3/envs/noaa_mvp/bin/python",
+    "python.condaPath": "/Users/dannes/miniconda3/bin/conda",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestArgs": ["tests"],
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+    }
