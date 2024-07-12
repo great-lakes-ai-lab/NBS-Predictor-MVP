@@ -128,6 +128,15 @@ ENV/
 env.bak/
 venv.bak/
 
+# Virtual environment named mvp-env
+mvp-env/
+mvp-env-tmp/
+
+# Shell script files that activate virtual environments
+*.csh
+*.fish
+*.ps1
+
 # Spyder project settings
 .spyderproject
 .spyproject
