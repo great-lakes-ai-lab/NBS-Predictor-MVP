@@ -212,7 +212,7 @@ class NARX(NumpyroModel):
         L_Omega = sigma[..., None] * l_omega
 
         input_dim = reduce(lambda a, x: a + 4 * x, lags.values(), 0)
-        h1 = 10
+        h1 = 8
         output_dim = 4
 
         # first layer of the neural network

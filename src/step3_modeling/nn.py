@@ -1,10 +1,31 @@
 import jax.nn
 import numpyro
+from pyro.nn import AutoRegressiveNN
+
+import torch.nn
 from jax import numpy as jnp
 from numpyro import distributions as dist
 
 from src.constants import lake_order
 from src.step3_modeling.modeling import NumpyroModel
+
+
+from torch.nn import LSTM, Linear, ReLU, Transformer
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class TestModelWithAttention(nn.Module):
+    def __init__(self, dim_input, activation=nn.ReLU()):
+        super(TestModelWithAttention, self).__init__()
+        self.dim_input = dim_input
+        self.net = nn.Sequential(Linear(dim_input, 50), activation, Linear(50, 4))
+
+    def forward(self, X):
+        # Assuming X is of shape (batch_size, time_steps, input_dim)
+        return self.net(X)
 
 
 class BayesNN(NumpyroModel):

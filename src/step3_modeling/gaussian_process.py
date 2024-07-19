@@ -9,6 +9,9 @@ from src.step3_modeling.modeling import ModelBase
 from src.step4_postprocessing import output_forecast_results
 from src.utils import lag_array, flatten_array
 
+import gpytorch
+import torch
+
 __all__ = ["SklearnGPModel", "LaggedSklearnGP"]
 
 
@@ -132,6 +135,96 @@ class LaggedSklearnGP(ModelBase):
             outputs, X.indexes["Date"][-forecast_steps:]
         )
         return formatted_predictions
+
+    def save(self, path):
+        pass
+
+    @classmethod
+    def load(cls, path):
+        pass
+
+
+class GPyTorchKernel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood, num_tasks=4):
+        super(GPyTorchKernel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=num_tasks
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.MaternKernel(), num_tasks=num_tasks, rank=4
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+
+
+class MultitaskGP(ModelBase):
+
+    def __init__(self, epochs=50, optimizer_params=None):
+        super().__init__()
+        self.model = None
+        self.likelihood = None
+        self.mll = None
+        self.optim = None
+        self.epochs = epochs
+        self.optimizer_params = optimizer_params or {"lr": 0.1}
+
+    @property
+    def name(self):
+        return "MultiTaskGP"
+
+    def fit(self, X, y, *args, **kwargs):
+
+        X = torch.tensor(X.values, dtype=torch.float32)
+        y = torch.tensor(y.values, dtype=torch.float32)
+
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
+            num_tasks=y.shape[1]
+        )
+        self.model = GPyTorchKernel(X, y, self.likelihood, num_tasks=y.shape[1])
+
+        # Find optimal model hyperparameters
+        self.model.train()
+        self.likelihood.train()
+
+        # Use the adam optimizer
+        self.optim = torch.optim.Adam(
+            self.model.parameters(), **self.optimizer_params
+        )  # Includes GaussianLikelihood parameters
+
+        # "Loss" for GPs - the marginal log likelihood
+        self.mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model)
+
+        for i in range(self.epochs):
+            self.optim.zero_grad()
+            output = self.model(X)
+            loss = -self.mll(output, y)
+            loss.backward()
+            print("Iter %d/%d - Loss: %.3f" % (i + 1, self.epochs, loss.item()))
+            self.optim.step()
+
+    def predict(self, X, y=None, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
+        self.model.eval()
+        self.likelihood.eval()
+
+        X_tensor = torch.tensor(X.values, dtype=torch.float32)
+
+        with torch.no_grad():
+            preds = self.likelihood(self.model(X_tensor))
+
+        mean, (low, high), std = (
+            preds.mean,
+            preds.confidence_region(),
+            preds.variance ** (1 / 2),
+        )
+
+        output = torch.stack([mean, low, high, std], dim=-1).detach().numpy()
+        return output_forecast_results(
+            output[-forecast_steps:],
+            forecast_labels=X.indexes["Date"][-forecast_steps:],
+        )
 
     def save(self, path):
         pass
