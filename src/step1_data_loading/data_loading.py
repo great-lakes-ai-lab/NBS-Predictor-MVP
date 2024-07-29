@@ -10,7 +10,7 @@ from src.constants import (
     DATA_DIR,
 )
 
-# glcc
+# GLCC
 runoff_hist_path = DATA_DIR / "GLCC" / "runoff_glerl_mic_hur_combined.csv"
 rnbs_hist_path = DATA_DIR / "GLCC" / "rnbs_glcc.csv"
 precip_hist_path = DATA_DIR / "GLCC" / "pcp_glerl_lakes_mic_hur_combined.csv"
@@ -49,7 +49,7 @@ name_remap = {
 
 def read_historical_files(path, reader_args=None) -> xr.DataArray:
     """
-    Read in glcc files. These have a simple format. For a given series, there are 5 columns: date,
+    Read in GLCC files. These have a simple format. For a given series, there are 5 columns: date,
     and the 4 great lakes. Once the file is read in, ensure that the columns are in the correct order.
     It is also assumed that the columns will have the following names: "sup", "mic_hur", "eri", "ont".
 
@@ -59,7 +59,7 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
         default options are assumed.
 
     Returns:
-        An Xarray DataArray with the glcc data, with "Date" as the leading dimension and "lake" as the
+        An Xarray DataArray with the GLCC data, with "Date" as the leading dimension and "lake" as the
         second.
 
     """
@@ -283,10 +283,10 @@ forecast_map = {
 }
 
 input_map = {
-    "rnbs": FileReader(rnbs_hist_path, source="glcc", series_name="rnbs_hist"),
+    "rnbs": FileReader(rnbs_hist_path, source="GLCC", series_name="rnbs_hist"),
     "precip": [
         expand_dims(
-            FileReader(precip_hist_path, source="glcc", series_name="precip_hist")
+            FileReader(precip_hist_path, source="GLCC", series_name="precip_hist")
         ),
         FileReader(
             precip_cfsr_path,
@@ -296,7 +296,7 @@ input_map = {
         ),
     ],
     "evap": [
-        expand_dims(FileReader(evap_hist_path, source="glcc", series_name="evap_hist")),
+        expand_dims(FileReader(evap_hist_path, source="GLCC", series_name="evap_hist")),
         FileReader(
             evap_cfsr_path,
             reader=read_cfsr_files,
@@ -312,7 +312,7 @@ input_map = {
         ),
     ),
     "water_level": FileReader(
-        water_level_hist_path, source="glcc", series_name="water_level"
+        water_level_hist_path, source="GLCC", series_name="water_level"
     ),
     "temp": FileReader(
         temp_cfsr_path,
