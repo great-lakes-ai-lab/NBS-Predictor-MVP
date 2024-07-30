@@ -6,9 +6,7 @@ from typing import List, Union
 import pandas as pd
 import xarray as xr
 
-from src.constants import (
-    DATA_DIR,
-)
+from src.constants import DATA_DIR
 
 # GLCC
 runoff_hist_path = DATA_DIR / "GLCC" / "runoff_glerl_mic_hur_combined.csv"

@@ -1,10 +1,10 @@
-from xarray.testing import assert_allclose
 import xarray as xr
+from xarray.testing import assert_allclose
 
 from src.step2_preprocessing.preprocessing import (
-    XArrayStandardScaler,
     CreateMonthDummies,
     SeasonalFeatures,
+    XArrayStandardScaler,
 )
 from src.utils import flatten_array
 
