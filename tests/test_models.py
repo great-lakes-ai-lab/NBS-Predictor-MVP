@@ -6,19 +6,19 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
 from src.step2_preprocessing.preprocessing import XArrayStandardScaler
-from src.utils import flatten_array
-from src.step3_modeling.ensemble import DefaultEnsemble, BaggedXArrayRegressor
+from src.step3_modeling.ensemble import BaggedXArrayRegressor, DefaultEnsemble
 from src.step3_modeling.gaussian_process import (
-    SklearnGPModel,
     LaggedSklearnGP,
     MultitaskGP,
+    SklearnGPModel,
 )
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
-from src.step3_modeling.var_models import VAR, NARX
 from src.step3_modeling.nn import BayesNN
+from src.step3_modeling.var_models import NARX, VAR
 from src.step4_postprocessing.postprocessing import output_forecast_results
+from src.utils import flatten_array
 from tests.conftest import skip_tests
 
 modelList = {
