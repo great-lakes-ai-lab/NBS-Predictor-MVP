@@ -2,6 +2,7 @@ import datetime as dt
 import re
 from functools import partial
 from typing import List, Union
+from collections.abc import Iterable
 
 import pandas as pd
 import xarray as xr
@@ -26,9 +27,11 @@ precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
 
 
 # CFS
-temp_cfs_path = DATA_DIR / "CFS" / "CFS_TMP_Basin_Avgs.csv"
-precip_cfs_path = DATA_DIR / "CFS" / "CFS_APCP_Basin_Avgs.csv"
-evap_cfs_path = DATA_DIR / "CFS" / "CFS_EVAP_Basin_Avgs.csv"
+cfs_dir = DATA_DIR / "CFS"
+
+temp_cfs_path = cfs_dir.glob("*/CFS_TMP_Basin_Avgs.csv")
+precip_cfs_path = cfs_dir.glob("*/CFS_APCP_Basin_Avgs.csv")
+evap_cfs_path = cfs_dir.glob("*/CFS_EVAP_Basin_Avgs.csv")
 
 
 # L2SWBM
@@ -98,117 +101,103 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
         name="Date",
     )
 
+    df = df.drop(["year", "month"], axis=1).set_index(date_index)
+    new_columns = pd.MultiIndex.from_tuples(
+        [tuple(re.findall("[A-Z][^A-Z]*", x)) for x in df.columns],
+        names=["type", "lake"],
+    )
+    df.columns = new_columns
+    df = df.rename(columns=name_remap, level=1)
+
     # with the new date index, convert to a "long" format
-    melted_data = (
-        df.set_index(date_index)
-        .drop(["year", "month"], axis=1)
-        .reset_index()
-        .melt(value_name="value", id_vars="Date")
+    output_array = (
+        df.melt(value_name="value", ignore_index=False)
+        .set_index(["lake", "type"], append=True)
+        .to_xarray()
+        .to_array()
+        .squeeze()
+        .drop("variable")
+    )
+
+    mic_hur = (
+        output_array.sel(lake=["mic", "hur"])
+        .sum(dim="lake")
+        .expand_dims(dim={"lake": ["mic_hur"]})
     )
 
     # Current columns are BasinErie, for example: find these, split, and create this varaible as two variables
-    new_cols = pd.DataFrame(
-        map(lambda x: re.findall("[A-Z][^A-Z]*", x), melted_data["variable"]),
-        index=melted_data.index,
-        columns=["type", "lake"],
-    )
-    long_df = melted_data.merge(new_cols, left_index=True, right_index=True).drop(
-        ["variable"], axis=1
-    )
-
     # with the melted data in the DF (Date -> lake -> ...) convert to an Xarray
     # loop over the groups ("Basin", "Land", "Lake") and format to match the format of Type I files.
-    lake_arrays = []
-    grps = []
-    for grp, arr in long_df.groupby("type"):
-        grps.append(grp)
-        pivot_long_df = arr.pivot(columns="lake", values="value", index="Date")
-
-        # rename the columns to match the shortened names in all other arrays (maintaining order as well)
-        array = (
-            pivot_long_df.assign(
-                mic_hur=pivot_long_df["Michigan"] + pivot_long_df["Huron"]
-            )
-            .drop(["Michigan", "Huron"], axis=1)
-            .rename(name_remap, axis=1)
-        )
-
-        lake_x_array = xr.DataArray(
-            array,
-            coords={"Date": array.index, "lake": lake_order},
-            dims=["Date", "lake"],
-            name=grp,
-        )
-        lake_arrays.append(lake_x_array)
-
-    full_set = xr.concat(lake_arrays, pd.Index(grps, name="type"))
-    return full_set
+    cur_forecasts = output_array.sel(lake=["eri", "sup", "ont"])
+    forecast_array = (
+        xr.concat([mic_hur, cur_forecasts], dim="lake")
+        .sel(lake=lake_order)
+        .transpose("Date", "lake", "type")
+    )
+    return forecast_array
 
 
 def read_cfs_file(path) -> xr.DataArray:
+    """
+    Reads a CFS (Climate Forecast System) CSV file and converts it into an Xarray DataArray.
+
+    The CSV file is expected to contain columns for year, month, cfsrun, and various lake measurements.
+    The function processes the data to create a multi-dimensional DataArray with dimensions for Date,
+    months ahead, lake, and type.
+
+    Args:
+        path: The path to the CSV file to be read.
+
+    Returns:
+        An Xarray DataArray with dimensions Date, months_ahead, lake, and type.
+    """
 
     input_csv = pd.read_csv(path)
-    cfsrun = pd.to_datetime(input_csv["cfsrun"], format="%Y%m%d%H")
     forecast_date = pd.to_datetime(
         input_csv.pop("year").astype(str) + input_csv.pop("month").astype(str),
         format="%Y%m",
     )
 
-    input_csv["cfsrun"] = cfsrun
-    input_csv["forecast_date"] = forecast_date
+    input_csv = input_csv.assign(
+        cfsrun=pd.to_datetime(input_csv["cfsrun"], format="%Y%m%d%H"),
+        forecast_date=forecast_date,
+    ).set_index(["cfsrun", "forecast_date"])
 
-    melted_vars = input_csv.melt(id_vars=["cfsrun", "forecast_date"])
-    new_cols = pd.DataFrame(
-        map(lambda x: re.findall("[A-Z][^A-Z]*", x), melted_vars.pop("variable")),
-        index=melted_vars.index,
-        columns=["type", "lake"],
+    new_columns = [tuple(re.findall("[A-Z][^A-Z]*", x)) for x in input_csv.columns]
+    input_csv.columns = pd.MultiIndex.from_tuples(new_columns, names=["type", "lake"])
+    input_csv = input_csv.rename(columns=name_remap)
+
+    input_csv["months_ahead"] = (
+        input_csv.sort_values(["cfsrun", "forecast_date"]).groupby("cfsrun").cumcount()
     )
 
-    melted_vars[["type", "lake"]] = new_cols
-    melted_vars = melted_vars[
-        ~melted_vars.set_index(
-            ["cfsrun", "forecast_date", "type", "lake"]
-        ).index.duplicated()
-    ]
+    # convert from an explicit forecast date to a simple integer for how many months ahead we are predicting
+    input_csv = input_csv.reset_index(level=1, drop=True).set_index(
+        "months_ahead", append=True
+    )
+    input_csv.index.names = ["Date", "months_ahead"]
 
-    # remove duplicated rows
-    arrays = []
-    melted_vars["forecast_step"] = (
-        melted_vars["forecast_date"].dt.to_period("M")
-        - melted_vars["cfsrun"].dt.to_period("M")
-    ).apply(lambda x: x.n)
-
-    types = []
-    for lake_data_type, grp in melted_vars.groupby("type"):
-        arr = xr.concat(
-            [
-                xr.DataArray(
-                    df.pivot(columns="lake", index="cfsrun", values="value").rename(
-                        name_remap, axis=1
-                    )
-                )
-                for step, df in grp.groupby("forecast_step")
-            ],
-            pd.Index(range(10), name="forecast_step"),
-        )
-        arrays.append(arr)
-        types.append(lake_data_type)
-    forecast_vals = xr.concat(arrays, dim=pd.Index(types, name="type")).rename(
-        {"cfsrun": "Date"}
+    output_array = (
+        input_csv.melt(ignore_index=False)
+        .set_index(["lake", "type"], append=True)
+        .to_xarray()
+        .to_array()
+        .squeeze()
+        .drop("variable")
     )
 
     # need to collapse michigan/huron measurements together into a single lake
     mich_hur = (
-        forecast_vals.sel(lake=["mic", "hur"])
+        output_array.sel(lake=["mic", "hur"])
         .mean(dim="lake")
         .expand_dims(dim={"lake": ["mic_hur"]})
     )
 
-    cur_forecasts = forecast_vals.sel(lake=["eri", "sup", "ont"])
+    cur_forecasts = output_array.sel(lake=["eri", "sup", "ont"])
     forecast_array = (
         xr.concat([mich_hur, cur_forecasts], dim="lake")
         .sel(lake=lake_order)
-        .transpose("Date", "lake", ...)
+        .transpose("Date", "months_ahead", "lake", "type")
     )
     return forecast_array
 
@@ -240,8 +229,20 @@ class FileReader(object):
         self.series_name = series_name
 
     def __call__(self) -> xr.DataArray:
-        arr: xr.DataArray = self._reader(self.path).rename(self.series_name)
-        return arr.assign_attrs(**self.metadata)
+
+        # If a list of files is passed in, assume that we want to concatenate across dates
+        # otherwise, just read in the file and return the Xarray
+        # In both cases, assign the metadata to the Xarray
+        if isinstance(self.path, Iterable):
+            arrs = [self._reader(path).rename(self.series_name) for path in self.path]
+            return (
+                xr.concat(arrs, dim="Date")
+                .assign_attrs(**self.metadata)
+                .sortby("Date", ascending=True)
+            )
+        else:
+            arr: xr.DataArray = self._reader(self.path).rename(self.series_name)
+            return arr.assign_attrs(**self.metadata)
 
 
 def expand_dims(fn, var_name="Thiessen"):
