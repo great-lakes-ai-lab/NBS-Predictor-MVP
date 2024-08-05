@@ -93,7 +93,7 @@ class VAR(NumpyroModel):
 
         """
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
-        nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
+        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
         ar_lag = max_lag = lags.get("y")
 
@@ -107,7 +107,7 @@ class VAR(NumpyroModel):
         covar_alphas = [
             numpyro.sample(
                 f"{cov}_alpha",
-                dist.Normal(0, 0.2),
+                dist.Normal(0, 0.5),
                 sample_shape=(4, 4, lag) if cov == "y" else (4, 4),  # lag at 0
             )
             for cov, lag in lags.items()
@@ -117,7 +117,7 @@ class VAR(NumpyroModel):
 
         with numpyro.plate("lakes", size=4):
             with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Laplace(global_mu, 1))
+                intercept = numpyro.sample("intercept", dist.Normal(global_mu, 1))
 
         # t_nu = numpyro.sample("t_nu", dist.HalfNormal(10))
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
@@ -132,7 +132,6 @@ class VAR(NumpyroModel):
 
             m = jnp.zeros((4,))
 
-            # Loop over coefficients for Precip and AR
             for i in range(len(lags.items())):
                 alphas = covar_alphas[i]
                 dataset = lagged_series[i]
@@ -204,7 +203,7 @@ class NARX(NumpyroModel):
             None - samples
 
         """
-        nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
+        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
         ar_lag = max_lag = lags.get("y")
 
@@ -222,7 +221,7 @@ class NARX(NumpyroModel):
         L_Omega = sigma[..., None] * l_omega
 
         input_dim = 4 * lags["y"] + covars.shape[-1]
-        h1 = 8
+        h1 = 16
         output_dim = 4  # 4 lakes
 
         # first layer of the neural network

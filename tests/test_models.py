@@ -3,15 +3,21 @@ import pytest
 import xarray as xr
 from sklearn.gaussian_process import kernels as k
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, SplineTransformer
 
-from src.step2_preprocessing.preprocessing import XArrayStandardScaler
-from src.step3_modeling.ensemble import BaggedXArrayRegressor, DefaultEnsemble
+from src.step2_preprocessing.preprocessing import XArrayAdapter, XArrayStandardScaler
+from src.step3_modeling.ensemble import (
+    BaggedXArrayRegressor,
+    DefaultEnsemble,
+    RandomForest,
+    BoostedRegressor,
+)
 from src.step3_modeling.gaussian_process import (
     LaggedSklearnGP,
     MultitaskGP,
     SklearnGPModel,
 )
+from src.step3_modeling.lm import LinearModel
 from src.step3_modeling.metrics import summarize
 from src.step3_modeling.modeling import ModelBase
 from src.step3_modeling.multivariate import LakeMVT
@@ -56,6 +62,28 @@ modelList = {
     ),
     "MultiTaskGP": Pipeline(
         [("flatten", FunctionTransformer(flatten_array)), ("gp", MultitaskGP())]
+    ),
+    "LinearModel": Pipeline(
+        [("flatten", FunctionTransformer(flatten_array)), ("lm", LinearModel())]
+    ),
+    "SplineModel": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("splines", XArrayAdapter(SplineTransformer(knots="quantile"))),
+            ("lm", LinearModel()),
+        ]
+    ),
+    "RandomForest": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("rf", RandomForest()),
+        ]
+    ),
+    "BoostedTrees": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("gb", BoostedRegressor()),
+        ]
     ),
 }
 
