@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 
 import arviz as az
 import numpy as np
@@ -6,7 +6,7 @@ import xarray as xr
 from jax import numpy as jnp
 from jax.random import PRNGKey
 from numpyro.diagnostics import hpdi
-from numpyro.infer import NUTS, MCMC, Predictive
+from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
@@ -38,7 +38,7 @@ class ModelBase(ABC):
         pass
 
     @abstractmethod
-    def predict(self, X, y, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
+    def predict(self, X, y=None, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
         """
         Abstract method for running the predictions
         Args:
@@ -156,7 +156,7 @@ class NumpyroModel(ModelBase):
         """
         pass
 
-    def predict(self, X, y=None, rng_key=None, forecast_steps=12, *args, **kwargs):
+    def predict(self, X, y=None, forecast_steps=12, rng_key=None, *args, **kwargs):
         """
 
         Args:

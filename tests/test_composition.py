@@ -2,7 +2,7 @@ import pytest
 from sklearn.pipeline import Pipeline
 import xarray as xr
 
-from src.step2_preprocessing.preprocessing import XArrayScaler
+from src.step2_preprocessing.preprocessing import XArrayStandardScaler
 from src.step3_modeling.ensemble import DefaultEnsemble
 from src.step4_postprocessing.postprocessing import (
     PostprocessingPipeline,
@@ -13,7 +13,7 @@ from src.composition import ModelPipeline
 
 @pytest.fixture
 def preprocessor():
-    return Pipeline(steps=[("scale", XArrayScaler())])
+    return Pipeline(steps=[("scale", XArrayStandardScaler())])
 
 
 @pytest.fixture

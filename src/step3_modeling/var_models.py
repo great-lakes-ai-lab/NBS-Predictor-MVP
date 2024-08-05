@@ -11,7 +11,7 @@ from numpyro.contrib.control_flow import scan
 from numpyro.infer.reparam import LocScaleReparam
 
 from src.step3_modeling.modeling import NumpyroModel
-from src.utils import lag_array, flatten_array
+from src.utils import flatten_array, lag_array
 
 __all__ = [
     # Classes
@@ -36,7 +36,7 @@ class VAR(NumpyroModel):
     ):
         super().__init__()
         if lags is None:
-            self.lags = {"y": 3, "precip_hist": 6}
+            self.lags = {"y": 3, "precip": 0}
         else:
             self.lags = lags
         self.num_chains = num_chains
@@ -53,7 +53,7 @@ class VAR(NumpyroModel):
             "series": self.lakes,
             "lakes": self.lakes,
             "month": list(calendar.month_abbr)[1:],
-            **{f"{k}_lags": list(range(1, self.lags[k] + 1)) for k in self.lags.keys()},
+            "lag": range(1, self.lags["y"] + 1),
         }
 
     @property
@@ -64,7 +64,10 @@ class VAR(NumpyroModel):
             "corr": ["series", "lakes"],
             "theta": ["lakes"],
             **{
-                f"{k}_alpha": ["series", "lakes", f"{k}_lags"] for k in self.lags.keys()
+                f"{k}_alpha": (
+                    ["series", "lakes", "lag"] if k == "y" else ["series", "lakes"]
+                )
+                for k in self.lags.keys()
             },
         }
 
@@ -90,24 +93,22 @@ class VAR(NumpyroModel):
 
         """
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
-        nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
+        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
-        ar_lag = lags.get("y")
-        max_lag = reduce(max, lags.values())
+        ar_lag = max_lag = lags.get("y")
 
+        # remove all lagging for covariates
         lagged_covars = [
-            lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(0, lag))[
-                max_lag:
-            ]
-            for covar, lag in lags.items()
+            jnp.array(covariates.sel(variable=covar))[ar_lag:]
+            for covar, _ in lags.items()
             if covar != "y"
         ]
 
         covar_alphas = [
             numpyro.sample(
                 f"{cov}_alpha",
-                dist.Normal(0, 0.2),
-                sample_shape=(4, 4, lag),  # lag at 0
+                dist.Normal(0, 0.5),
+                sample_shape=(4, 4, lag) if cov == "y" else (4, 4),  # lag at 0
             )
             for cov, lag in lags.items()
         ]
@@ -116,7 +117,7 @@ class VAR(NumpyroModel):
 
         with numpyro.plate("lakes", size=4):
             with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Laplace(global_mu, 1))
+                intercept = numpyro.sample("intercept", dist.Normal(global_mu, 1))
 
         # t_nu = numpyro.sample("t_nu", dist.HalfNormal(10))
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
@@ -131,12 +132,14 @@ class VAR(NumpyroModel):
 
             m = jnp.zeros((4,))
 
-            # Loop over coefficients for Precip and AR
             for i in range(len(lags.items())):
                 alphas = covar_alphas[i]
                 dataset = lagged_series[i]
-                for j in jnp.arange(alphas.shape[-1]):
-                    m += jnp.matmul(alphas[:, :, j], dataset[j, :])
+                if len(alphas.shape) > 2:
+                    for j in jnp.arange(alphas.shape[-1]):
+                        m += jnp.matmul(alphas[:, :, j], dataset[j, :])
+                else:
+                    m += jnp.matmul(alphas, dataset)
 
             m_t = intercept[month_t, :] + m
             y_t = numpyro.sample(
@@ -172,7 +175,7 @@ class NARX(NumpyroModel):
 
     def __init__(self, lags=None, num_chains=4, num_samples=1000, num_warmup=1000):
         super().__init__(lags, num_chains, num_samples, num_warmup)
-        self.lags = lags or {"y": 3, "evap_hist": 2, "precip_hist": 2}
+        self.lags = lags or {"y": 3, "evap": 2, "precip": 2}
 
     @property
     def name(self):
@@ -200,10 +203,16 @@ class NARX(NumpyroModel):
             None - samples
 
         """
-        nu = numpyro.sample("nu", dist.HalfCauchy(2.0))
+        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
-        ar_lag = lags.get("y")
-        max_lag = reduce(max, lags.values())
+        ar_lag = max_lag = lags.get("y")
+
+        lagged_covars = [
+            jnp.array(covariates.sel(variable=covar))[max_lag:]
+            for covar, lag in lags.items()
+            if covar != "y"
+        ]
+        covars = jnp.concatenate(lagged_covars, axis=-1)
 
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
@@ -211,9 +220,9 @@ class NARX(NumpyroModel):
         sigma = jnp.sqrt(theta)
         L_Omega = sigma[..., None] * l_omega
 
-        input_dim = reduce(lambda a, x: a + 4 * x, lags.values(), 0)
-        h1 = 10
-        output_dim = 4
+        input_dim = 4 * lags["y"] + covars.shape[-1]
+        h1 = 16
+        output_dim = 4  # 4 lakes
 
         # first layer of the neural network
         w1 = numpyro.sample(
@@ -228,17 +237,6 @@ class NARX(NumpyroModel):
         b2 = numpyro.sample(
             "b2", dist.Normal(jnp.zeros(output_dim), jnp.ones(output_dim))
         )
-
-        lagged_covars = [
-            flatten_array(
-                lag_array(jnp.array(covariates.sel(variable=covar)), np.arange(0, lag))[
-                    max_lag:
-                ]
-            )
-            for covar, lag in lags.items()
-            if covar != "y"
-        ]
-        covars = jnp.concatenate(lagged_covars, axis=-1)
 
         def transition_fn(carry, covars):
             prev_y = carry

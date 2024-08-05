@@ -5,10 +5,10 @@ import pandas as pd
 from numpy.typing import NDArray
 from properscoring import crps_gaussian
 from sklearn.metrics import (
-    mean_squared_error,
     mean_absolute_error,
-    root_mean_squared_error,
+    mean_squared_error,
     r2_score,
+    root_mean_squared_error,
 )
 
 __all__ = [
@@ -95,5 +95,6 @@ def summarize(df, crps_func=crps_gaussian):
             "interval_len": np.mean(df["upper"] - df["lower"]),
             "crps": crps_func(df["true"], df["mean"], df["std"]).mean(),
             "N": df.shape[0],
+            "r2": r2_score(df["mean"], df["true"]),
         }
     )
