@@ -14,9 +14,9 @@ def test_single_series(series):
     "input_mapping", [input_map, forecast_map], ids=["inputs", "forecasts"]
 )
 def test_multi_series(input_mapping, request):
-    id = request.node.callspec.id.split("-")
+    id_name = request.node.callspec.id.split("-")
     series_list = list(input_mapping.keys())
-    covars = load_data(series_list, data_type=id[0])
+    covars = load_data(series_list, data_type=id_name[0])
 
     assert list(covars.data_vars) == series_list
     assert isinstance(covars, xr.Dataset)
