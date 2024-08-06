@@ -112,7 +112,7 @@ class VAR(NumpyroModel):
             )
             for cov, lag in lags.items()
         ]
-
+        u
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
         with numpyro.plate("lakes", size=4):
