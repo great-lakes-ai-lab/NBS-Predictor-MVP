@@ -5,25 +5,25 @@ from sklearn.gaussian_process import kernels as k
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, SplineTransformer
 
-from src.step2_preprocessing.preprocessing import XArrayAdapter, XArrayStandardScaler
-from src.step3_modeling.ensemble import (
+from src.preprocessing.preprocessing import XArrayAdapter, XArrayStandardScaler
+from src.modeling.ensemble import (
     BaggedXArrayRegressor,
     DefaultEnsemble,
     RandomForest,
     BoostedRegressor,
 )
-from src.step3_modeling.gaussian_process import (
+from src.modeling.gaussian_process import (
     LaggedSklearnGP,
     MultitaskGP,
     SklearnGPModel,
 )
-from src.step3_modeling.lm import LinearModel
-from src.step3_modeling.metrics import summarize
-from src.step3_modeling.modeling import ModelBase
-from src.step3_modeling.multivariate import LakeMVT
-from src.step3_modeling.nn import BayesNN
-from src.step3_modeling.var_models import NARX, VAR
-from src.step4_postprocessing.postprocessing import output_forecast_results
+from src.modeling.lm import LinearModel
+from src.modeling.metrics import summarize
+from src.modeling.modeling import ModelBase
+from src.modeling.multivariate import LakeMVT
+from src.modeling.nn import BayesNN
+from src.modeling.var_models import NARX, VAR
+from src.postprocessing.postprocessing import output_forecast_results
 from src.utils import flatten_array
 from tests.conftest import skip_tests
 

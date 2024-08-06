@@ -205,7 +205,7 @@ to work in `src/data_loading.py`.
 For example, this is a valid way to load data:
 
 ```python
-from src.step1_data_loading.data_loading import load_data
+from src.data_loading.data_loading import load_data
 
 covariates = load_data(["evap_cfsr", "temp_hist"])
 ```

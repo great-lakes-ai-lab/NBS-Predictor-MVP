@@ -2,9 +2,9 @@ import pytest
 from sklearn.pipeline import Pipeline
 import xarray as xr
 
-from src.step2_preprocessing.preprocessing import XArrayStandardScaler
-from src.step3_modeling.ensemble import DefaultEnsemble
-from src.step4_postprocessing.postprocessing import (
+from src.preprocessing.preprocessing import XArrayStandardScaler
+from src.modeling.ensemble import DefaultEnsemble
+from src.postprocessing.postprocessing import (
     PostprocessingPipeline,
     ExceedanceProbClosure,
 )

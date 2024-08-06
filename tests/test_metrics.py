@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.step3_modeling import summarize
+from src.modeling import summarize
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 import xarray as xr
 from xarray.testing import assert_allclose
 
-from src.step2_preprocessing.preprocessing import (
+from src.preprocessing.preprocessing import (
     CreateMonthDummies,
     SeasonalFeatures,
     XArrayStandardScaler,

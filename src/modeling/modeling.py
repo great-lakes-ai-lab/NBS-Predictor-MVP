@@ -10,7 +10,7 @@ from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from src.step4_postprocessing import output_forecast_results
+from src.postprocessing import output_forecast_results
 
 __all__ = [
     # Classes

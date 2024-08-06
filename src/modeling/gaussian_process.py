@@ -7,8 +7,8 @@ import xarray as xr
 from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor, kernels
 
-from src.step3_modeling.modeling import ModelBase
-from src.step4_postprocessing import output_forecast_results
+from src.modeling.modeling import ModelBase
+from src.postprocessing import output_forecast_results
 from src.utils import flatten_array, lag_array
 
 __all__ = ["SklearnGPModel", "LaggedSklearnGP"]

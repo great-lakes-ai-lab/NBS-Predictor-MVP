@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from src.step3_modeling.ensemble import DefaultEnsemble
-from src.step4_postprocessing.postprocessing import (
+from src.modeling.ensemble import DefaultEnsemble
+from src.postprocessing.postprocessing import (
     ExceedanceProbClosure,
     PostprocessingPipeline,
 )
