@@ -27,9 +27,9 @@ precip_cfsr_path = DATA_DIR / "CFSR" / "CFSR_APCP_Basin_Avgs.csv"
 # CFS
 cfs_dir = DATA_DIR / "CFS"
 
-temp_cfs_path = cfs_dir.glob("*/CFS_TMP_Basin_Avgs.csv")
-precip_cfs_path = cfs_dir.glob("*/CFS_APCP_Basin_Avgs.csv")
-evap_cfs_path = cfs_dir.glob("*/CFS_EVAP_Basin_Avgs.csv")
+temp_cfs_path = list(cfs_dir.glob("*/CFS_TMP_Basin_Avgs.csv"))
+precip_cfs_path = list(cfs_dir.glob("*/CFS_APCP_Basin_Avgs.csv"))
+evap_cfs_path = list(cfs_dir.glob("*/CFS_EVAP_Basin_Avgs.csv"))
 
 
 # L2SWBM
