@@ -3,7 +3,7 @@ import datetime as dt
 import pandas as pd
 import pytest
 
-from src.step2_preprocessing.preprocessing import XArrayStandardScaler
+from src.preprocessing.preprocessing import XArrayStandardScaler
 from src.utils import create_rnbs_snapshot, acf, lag_array
 
 
