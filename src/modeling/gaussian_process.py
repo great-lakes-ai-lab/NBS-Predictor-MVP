@@ -14,7 +14,11 @@ from src.modeling.modeling import ModelBase, NumpyroModel
 from src.postprocessing import output_forecast_results
 from src.utils import flatten_array, lag_array
 
+import logging
+
 __all__ = ["SklearnGPModel", "LaggedSklearnGP", "MultitaskGP"]
+
+logger = logging.getLogger(__name__)
 
 
 # Kernel definitions are taken from https://www.cs.toronto.edu/~duvenaud/cookbook/
@@ -314,7 +318,10 @@ class MultitaskGP(ModelBase):
             output = self.kernel(X)
             loss = -self.mll(output, y)
             loss.backward()
-            print("Iter %d/%d - Loss: %.3f" % (i + 1, self.epochs, loss.item()))
+            if i % 50 == 0:
+                logger.info(
+                    "Iter %d/%d - Loss: %.3f" % (i + 1, self.epochs, loss.item())
+                )
             self.optim.step()
 
     def predict(self, X, y=None, forecast_steps=12, *args, **kwargs) -> xr.DataArray:
