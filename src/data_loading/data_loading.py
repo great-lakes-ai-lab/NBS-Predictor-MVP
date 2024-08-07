@@ -74,7 +74,7 @@ def read_historical_files(path, reader_args=None) -> xr.DataArray:
     )
 
 
-def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
+def read_cfsr_files(path, reader_args=None, sum_mic_hur: bool = True) -> xr.DataArray:
     """
     Read CSVs which have the format of {Type}{Lake} for each column. These consist of multiple columns for each lake.
     For example, each column in temperature is BasinSuperior, BasinErie, WaterMichigan, etc.
@@ -117,11 +117,18 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
         .drop("variable")
     )
 
-    mic_hur = (
-        output_array.sel(lake=["mic", "hur"])
-        .sum(dim="lake")
-        .expand_dims(dim={"lake": ["mic_hur"]})
-    )
+    if sum_mic_hur == "sum":
+        mic_hur = (
+            output_array.sel(lake=["mic", "hur"])
+            .sum(dim="lake")
+            .expand_dims(dim={"lake": ["mic_hur"]})
+        )
+    else:
+        mic_hur = (
+            output_array.sel(lake=["mic", "hur"])
+            .mean(dim="lake")
+            .expand_dims(dim={"lake": ["mic_hur"]})
+        )
 
     # Current columns are BasinErie, for example: find these, split, and create this varaible as two variables
     # with the melted data in the DF (Date -> lake -> ...) convert to an Xarray
@@ -135,7 +142,7 @@ def read_cfsr_files(path, reader_args=None) -> xr.DataArray:
     return forecast_array
 
 
-def read_cfs_file(path) -> xr.DataArray:
+def read_cfs_file(path, sum_mic_hur=True) -> xr.DataArray:
     """
     Reads a CFS (Climate Forecast System) CSV file and converts it into an Xarray DataArray.
 
@@ -185,11 +192,18 @@ def read_cfs_file(path) -> xr.DataArray:
     )
 
     # need to collapse michigan/huron measurements together into a single lake
-    mich_hur = (
-        output_array.sel(lake=["mic", "hur"])
-        .mean(dim="lake")
-        .expand_dims(dim={"lake": ["mic_hur"]})
-    )
+    if sum_mic_hur:
+        mich_hur = (
+            output_array.sel(lake=["mic", "hur"])
+            .sum(dim="lake")
+            .expand_dims(dim={"lake": ["mic_hur"]})
+        )
+    else:
+        mich_hur = (
+            output_array.sel(lake=["mic", "hur"])
+            .mean(dim="lake")
+            .expand_dims(dim={"lake": ["mic_hur"]})
+        )
 
     cur_forecasts = output_array.sel(lake=["eri", "sup", "ont"])
     forecast_array = (
@@ -275,7 +289,7 @@ forecast_map = {
     ),
     "temp": FileReader(
         temp_cfs_path,
-        reader=read_cfs_file,
+        reader=partial(read_cfs_file, sum_mic_hur=False),
         source="CFS",
         type="forecast",
     ),
@@ -315,7 +329,7 @@ input_map = {
     ),
     "temp": FileReader(
         temp_cfsr_path,
-        reader=read_cfsr_files,
+        reader=partial(read_cfsr_files, sum_mic_hur=False),
         source="CFSR",
         units="K",
         series_name="temp",
