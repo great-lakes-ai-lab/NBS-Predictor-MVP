@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from src.step1_data_loading.data_loading import load_data
+from src.data_loading.data_loading import load_data
 from src.utils import create_rnbs_snapshot
 
 
