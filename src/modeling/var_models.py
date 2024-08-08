@@ -229,6 +229,7 @@ class NARX(NumpyroModel):
         )
         b1 = numpyro.sample("b1", dist.Normal(jnp.zeros(h1), jnp.ones(h1)))
 
+        # output layer of the neural network
         w2 = numpyro.sample(
             "w2",
             dist.Normal(jnp.zeros((h1, output_dim)), jnp.ones((h1, output_dim))),
@@ -238,6 +239,15 @@ class NARX(NumpyroModel):
         )
 
         def transition_fn(carry, covars):
+            """
+            Function for predicting the next value in the time series given the previous values and covariates.
+            Args:
+                carry: The previous prediction of the time series
+                covars: The covariates for this time step
+            Returns:
+                A tuple containing the next values to carry forward (y value plus the lag) and the
+                predicted value for this time step.
+            """
             prev_y = carry
 
             input_vals = jnp.concatenate([carry.reshape(-1), covars], axis=-1)

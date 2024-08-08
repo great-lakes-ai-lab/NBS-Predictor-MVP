@@ -48,7 +48,6 @@ class NumpyroLagGP(NumpyroModel):
 
     @staticmethod
     def model(y, y_index, lags, covariates, future=0):
-
         lengthscale = numpyro.sample("lengthscale", dist.Gamma(2, 1))
         noise = numpyro.sample("noise", dist.HalfNormal(1))
         variance = numpyro.sample("variance", dist.HalfNormal(1))
@@ -261,7 +260,9 @@ class GPyTorchKernel(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.MaternKernel(), num_tasks=num_tasks, rank=self.rank
+            gpytorch.kernels.MaternKernel() * gpytorch.kernels.RQKernel(),
+            num_tasks=num_tasks,
+            rank=self.rank,
         )
 
     def forward(self, x):
