@@ -2,8 +2,8 @@ from typing import Union
 
 from sklearn.pipeline import Pipeline
 
-from step3_modeling.modeling import ModelBase
-from step4_postprocessing.postprocessing import PostprocessingPipeline
+from src.modeling.modeling import ModelBase
+from src.postprocessing.postprocessing import PostprocessingPipeline
 
 __all__ = ["ModelPipeline"]
 

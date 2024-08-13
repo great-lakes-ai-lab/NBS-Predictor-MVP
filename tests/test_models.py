@@ -3,36 +3,44 @@ import pytest
 import xarray as xr
 from sklearn.gaussian_process import kernels as k
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, SplineTransformer
 
-from src.step2_preprocessing.preprocessing import XArrayScaler
+from src.preprocessing.preprocessing import XArrayAdapter, XArrayStandardScaler
+from src.modeling.ensemble import (
+    BaggedXArrayRegressor,
+    DefaultEnsemble,
+    RandomForest,
+    BoostedRegressor,
+)
+from src.modeling.gaussian_process import (
+    LaggedSklearnGP,
+    MultitaskGP,
+    SklearnGPModel,
+)
+from src.modeling.lm import LinearModel
+from src.modeling.metrics import summarize
+from src.modeling.modeling import ModelBase
+from src.modeling.multivariate import LakeMVT
+from src.modeling.nn import BayesNN
+from src.modeling.var_models import NARX, VAR
+from src.postprocessing.postprocessing import output_forecast_results
 from src.utils import flatten_array
-from src.step3_modeling.ensemble import DefaultEnsemble, BaggedXArrayRegressor
-from src.step3_modeling.gaussian_process import SklearnGPModel, LaggedSklearnGP
-from src.step3_modeling.metrics import summarize
-from src.step3_modeling.modeling import ModelBase
-from src.step3_modeling.multivariate import LakeMVT
-from src.step3_modeling.var_models import VAR, NARX
-from src.step3_modeling.nn import BayesNN
-from src.step4_postprocessing.postprocessing import output_forecast_results
 from tests.conftest import skip_tests
 
 modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
     "MVN": LakeMVT(num_warmup=0, num_samples=3, num_chains=1),
     "VAR": VAR(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2}),
-    "NARX": NARX(
-        num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip_hist": 2}
-    ),
+    "NARX": NARX(num_warmup=0, num_samples=3, num_chains=1, lags={"y": 2, "precip": 2}),
     "VARX": VAR(
         num_warmup=0,
         num_samples=3,
         num_chains=1,
-        lags={"y": 1, "precip_hist": 1, "evap_hist": 1},
+        lags={"y": 1, "precip": 1, "evap": 1},
     ),
     "GP": Pipeline(
         steps=[
-            ("scale", XArrayScaler()),
+            ("scale", XArrayStandardScaler()),
             ("flatten", FunctionTransformer(flatten_array)),
             ("gp", SklearnGPModel(kernel=1.0 * k.Matern())),
         ]
@@ -52,6 +60,31 @@ modelList = {
     "LaggedSklearnGP": Pipeline(
         [("flatten", FunctionTransformer(flatten_array)), ("gp", LaggedSklearnGP())]
     ),
+    "MultiTaskGP": Pipeline(
+        [("flatten", FunctionTransformer(flatten_array)), ("gp", MultitaskGP())]
+    ),
+    "LinearModel": Pipeline(
+        [("flatten", FunctionTransformer(flatten_array)), ("lm", LinearModel())]
+    ),
+    "SplineModel": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("splines", XArrayAdapter(SplineTransformer(knots="quantile"))),
+            ("lm", LinearModel()),
+        ]
+    ),
+    "RandomForest": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("rf", RandomForest()),
+        ]
+    ),
+    "BoostedTrees": Pipeline(
+        [
+            ("flatten", FunctionTransformer(flatten_array)),
+            ("gb", BoostedRegressor()),
+        ]
+    ),
 }
 
 
@@ -62,13 +95,13 @@ def preprocessor():
     Returns:
 
     """
-    return Pipeline([("scaler", XArrayScaler())])
+    return Pipeline([("scaler", XArrayStandardScaler())])
 
 
 @pytest.mark.skipif(skip_tests, reason="Skip kernel fits")
 @pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
 def test_model_fit(model: ModelBase, snapshot, preprocessor):
-    y_scaler = XArrayScaler()
+    y_scaler = XArrayStandardScaler()
     train_y = y_scaler.fit_transform(snapshot.train_y)
     test_y = y_scaler.transform(snapshot.test_y)
     full_pipeline = Pipeline([("preprocess", preprocessor), ("model", model)])

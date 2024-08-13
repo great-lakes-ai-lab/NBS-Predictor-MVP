@@ -2,9 +2,9 @@ import pytest
 from sklearn.pipeline import Pipeline
 import xarray as xr
 
-from src.step2_preprocessing.preprocessing import XArrayScaler
-from src.step3_modeling.ensemble import DefaultEnsemble
-from src.step4_postprocessing.postprocessing import (
+from src.preprocessing.preprocessing import XArrayStandardScaler
+from src.modeling.ensemble import DefaultEnsemble
+from src.postprocessing.postprocessing import (
     PostprocessingPipeline,
     ExceedanceProbClosure,
 )
@@ -13,14 +13,14 @@ from src.composition import ModelPipeline
 
 @pytest.fixture
 def preprocessor():
-    return Pipeline(steps=[("scale", XArrayScaler())])
+    return Pipeline(steps=[("scale", XArrayStandardScaler())])
 
 
 @pytest.fixture
 def postprocessor(lake_data):
     return PostprocessingPipeline(
         steps=[
-            ("exceedance", ExceedanceProbClosure(lake_data.sel(variable="rnbs_hist"))),
+            ("exceedance", ExceedanceProbClosure(lake_data.sel(variable="rnbs"))),
         ]
     )
 

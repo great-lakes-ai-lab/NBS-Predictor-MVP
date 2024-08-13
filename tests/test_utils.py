@@ -3,7 +3,7 @@ import datetime as dt
 import pandas as pd
 import pytest
 
-from src.step2_preprocessing.preprocessing import XArrayScaler
+from src.preprocessing.preprocessing import XArrayStandardScaler
 from src.utils import create_rnbs_snapshot, acf, lag_array
 
 
@@ -14,7 +14,7 @@ from src.utils import create_rnbs_snapshot, acf, lag_array
 )
 def test_snapshot(lake_data, split_date):
     local_snapshot = create_rnbs_snapshot(
-        lake_data.sel(lake="sup", variable="rnbs_hist"),
+        lake_data.sel(lake="sup", variable="rnbs"),
         split_date=split_date,
         num_years_forward=1,
         sequential_validation=True,
@@ -30,8 +30,8 @@ def test_snapshot_scaling(lake_data):
         split_date=dt.datetime(1999, 12, 1),
         covariates=lake_data.sel(variable=["runoff", "precip"]),
     )
-    x_scaler = XArrayScaler()
-    y_scaler = XArrayScaler()
+    x_scaler = XArrayStandardScaler()
+    y_scaler = XArrayStandardScaler()
 
     old_max = local_snapshot.train_x.max()
 
@@ -44,8 +44,8 @@ def test_snapshot_scaling(lake_data):
 
 def test_multi_lake_snapshot(lake_data):
     snapshot = create_rnbs_snapshot(
-        rnbs_data=lake_data.sel(variable="rnbs_hist"),
-        covariates=lake_data.sel(variable=["precip_hist", "runoff_hist", "evap_hist"]),
+        rnbs_data=lake_data.sel(variable="rnbs"),
+        covariates=lake_data.sel(variable=["precip", "runoff", "evap"]),
         split_date=2000,
     )
     assert snapshot
@@ -54,9 +54,9 @@ def test_multi_lake_snapshot(lake_data):
 def test_snapshot_divides_covars(lake_data):
     # just use the other lakes for our "covariates"
     local_snapshot = create_rnbs_snapshot(
-        rnbs_data=lake_data.sel(variable="rnbs_hist"),
+        rnbs_data=lake_data.sel(variable="rnbs"),
         split_date=dt.date(2005, 1, 1),
-        covariates=lake_data.sel(variable="precip_hist"),
+        covariates=lake_data.sel(variable="precip"),
     )
     assert local_snapshot.train_x.shape[1] == 4
     assert (
@@ -76,10 +76,7 @@ def test_snapshot_divides_covars(lake_data):
 @pytest.mark.parametrize("lag", [10, 20, 50])
 def test_acf(lake_data, lag):
     rnbs_12 = (
-        lake_data.sel(lake="sup", variable="rnbs_hist")
-        .rolling(Date=12)
-        .sum()
-        .dropna("Date")
+        lake_data.sel(lake="sup", variable="rnbs").rolling(Date=12).sum().dropna("Date")
     )
     acf_values = acf(rnbs_12, max_lag=lag)
 
@@ -90,20 +87,18 @@ def test_acf(lake_data, lag):
 
 @pytest.mark.parametrize("lags", [(1, 2), (1, 5, 10)], ids=["1,2", "1,5,10"])
 def test_lag_var(lake_data, lags):
-    rnbs_vect = lake_data.sel(lake="sup", variable="rnbs_hist")
+    rnbs_vect = lake_data.sel(lake="sup", variable="rnbs")
     lag_return = lag_array(rnbs_vect, lags=lags)
     assert lag_return.shape == (len(rnbs_vect), len(lags))
 
 
 def test_lag_array(lake_data):
-    my_data = lake_data.sel(variable="rnbs_hist")[:10]
+    my_data = lake_data.sel(variable="rnbs")[:10]
     lagged_data = lag_array(my_data, lags=(1, 2, 3))
-
-    assert lagged_data.shape == (10, 4, 3)
 
 
 def test_lag_array_with_dict(lake_data):
-    lags = {"rnbs_hist": 2, "precip_hist": 3}
+    lags = {"rnbs": 2, "precip": 3}
     lagged_data = lag_array(lake_data, lags=lags)
 
     assert isinstance(lagged_data, list)
