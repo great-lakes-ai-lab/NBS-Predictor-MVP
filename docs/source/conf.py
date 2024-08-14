@@ -1,17 +1,10 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
 import os
 import sys
+import pdb
 from pathlib import Path
 
 # Insert source directory into sys.path
 sys.path.insert(0, os.path.abspath('../../src'))
-
-# Print sys.path for debugging
-print("sys.path:", sys.path)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -29,6 +22,7 @@ extensions = [
     'sphinx.ext.napoleon',      # For Google style or NumPy style docstrings
     'sphinx.ext.autosummary',
 ]
+
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
 templates_path = ['_templates']

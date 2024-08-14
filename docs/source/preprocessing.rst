@@ -1,7 +1,7 @@
-Step 2 Preprocessing
+Preprocessing
 =============================
 
-.. automodule:: step2_preprocessing.preprocessing
+.. automodule:: preprocessing.preprocessing
    :members:
    :undoc-members:
    :show-inheritance:

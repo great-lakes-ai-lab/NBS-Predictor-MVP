@@ -1,40 +1,40 @@
-Step 3 Modeling
+Modeling
 ===============
 
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: step3_modeling.ensemble
+.. automodule::  modeling.ensemble
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: step3_modeling.gaussian_process
+.. automodule::  modeling.gaussian_process
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: step3_modeling.metrics
+.. automodule::  modeling.metrics
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: step3_modeling.modeling
+.. automodule::  modeling.modeling
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: step3_modeling.multivariate
+.. automodule::  modeling.multivariate
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: step3_modeling.nn
+.. automodule::  modeling.nn
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: step3_modeling.var_models
+.. automodule::  modeling.var_models
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,7 +1,7 @@
-Step 4 Postprocessing
+Postprocessing
 =====================
 
-.. automodule:: step4_postprocessing.postprocessing
+.. automodule:: postprocessing.postprocessing
    :members:
    :undoc-members:
    :show-inheritance:
