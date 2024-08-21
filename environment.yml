@@ -1,0 +1,23 @@
+name: noaa_mvp
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - jupyter
+  - jax
+  - numpyro
+  - plotnine
+  - arviz
+  - scikit-learn
+  - scipy=1.12.0
+  - pytorch::pytorch
+  - torchaudio
+  - torchvision
+  - properscoring
+  - pytest==8.0
+  - pytest-xdist
+  - gpytorch
+  - pyro-ppl
+  - pytest-env
+  - tabulate
