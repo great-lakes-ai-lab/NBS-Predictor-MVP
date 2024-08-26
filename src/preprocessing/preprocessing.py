@@ -8,8 +8,32 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 class XArrayStandardScaler(object):
+    """
+    A class used to standardize xarray DataArrays by removing the mean and
+    scaling to unit variance along the 'Date' dimension.
+
+    Attributes
+    ----------
+    is_fitted : bool
+        A flag indicating whether the scaler has been fitted.
+    means : xr.DataArray or None
+        The means of the DataArray along the 'Date' dimension.
+    std : xr.DataArray or None
+        The standard deviations of the DataArray along the 'Date' dimension.
+    dims : tuple or None
+        The dimensions of the DataArray being processed.
+    coords : dict or None
+        The coordinates of the DataArray being processed.
+    """
 
     def __init__(self):
+        """
+        Initializes the XArrayStandardScaler with initial values.
+
+        Parameters
+        ----------
+        None
+        """
         self.is_fitted = False
         self.means = None
         self.std = None
@@ -17,21 +41,83 @@ class XArrayStandardScaler(object):
         self.coords = None
 
     def fit(self, X: xr.DataArray, y=None):
+        """
+        Compute the mean and standard deviation of the DataArray along the 'Date'
+        dimension for later scaling.
+
+        Parameters
+        ----------
+        X : xr.DataArray
+            Input DataArray with 'Date' as the first dimension.
+        y : None, default=None
+            Ignored. This parameter exists for compatibility with sklearn's API.
+
+        Returns
+        -------
+        self : object
+            Returns the instance itself.
+        """
         assert X.dims[0] == "Date"
 
         self.means = X.mean("Date")
         self.std = X.std("Date")
-
         self.is_fitted = True
 
-    def transform(self, X: xr.DataArray, y=None):
+    def transform(self, X: xr.DataArray, y=None) -> xr.DataArray:
+        """
+        Standardize the DataArray by removing the mean and scaling to unit variance
+        using previously computed means and standard deviations.
+
+        Parameters
+        ----------
+        X : xr.DataArray
+            Input DataArray to be transformed.
+        y : None, default=None
+            Ignored. This parameter exists for compatibility with sklearn's API.
+
+        Returns
+        -------
+        X_transformed : xr.DataArray
+            Standardized DataArray.
+        """
         return (X - self.means) / self.std
 
-    def fit_transform(self, X: xr.DataArray, y=None):
+    def fit_transform(self, X: xr.DataArray, y=None) -> xr.DataArray:
+        """
+        Fit to the data and then transform it.
+
+        Parameters
+        ----------
+        X : xr.DataArray
+            Input DataArray to be fitted and transformed.
+        y : None, default=None
+            Ignored. This parameter exists for compatibility with sklearn's API.
+
+        Returns
+        -------
+        X_transformed : xr.DataArray
+            Standardized DataArray.
+        """
         self.fit(X)
         return self.transform(X)
 
-    def inverse_transform(self, X: xr.DataArray, y=None):
+    def inverse_transform(self, X: xr.DataArray, y=None) -> xr.DataArray:
+        """
+        Scale back the DataArray to the original distribution by reversing the
+        standardization.
+
+        Parameters
+        ----------
+        X : xr.DataArray
+            Standardized DataArray to be inversely transformed.
+        y : None, default=None
+            Ignored. This parameter exists for compatibility with sklearn's API.
+
+        Returns
+        -------
+        X_original : xr.DataArray
+            DataArray restored to the original distribution.
+        """
         return X * self.std + self.means
 
 
