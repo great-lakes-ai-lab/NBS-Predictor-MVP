@@ -1,0 +1,20 @@
+# To use yaml file, type 'conda env export > environment.yml'
+# Then type 'conda activate mvpenv' to activate the environment
+name: mvpenv
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - xarray
+  - boto3
+  - cfgrib
+  - pandas
+  - netCDF4
+  - numpy
+  - scikit-learn
+  - tensorflow
+  - joblib
+  - matplotlib
+  - pip
+
