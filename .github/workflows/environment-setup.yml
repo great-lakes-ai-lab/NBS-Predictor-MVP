@@ -27,6 +27,7 @@ jobs:
           environment-file: environment.yml
           auto-update-conda: true
           python-version: 3.9
+          miniconda-version: "latest"  # Specify to ensure Miniconda is downloaded and installed
       - name: Install dependencies
         shell: bash -l {0}
         run: |
