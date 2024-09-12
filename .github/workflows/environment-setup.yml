@@ -1,27 +1,23 @@
+---
 name: Environment Setup
-
 on:
   push:
     branches:
-      - mvp_demo_dj
+      - demo
   pull_request:
     branches:
-      - mvp_demo_dj
-
+      - demo
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:
           - ubuntu-latest
           - windows-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Setup Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -29,11 +25,15 @@ jobs:
           environment-file: environment.yml
           auto-update-conda: true
           python-version: 3.9
-
       - name: Install dependencies
         run: |
           conda env update -f environment.yml
-          
+          conda activate cross_platform_env
+      - name: Verify environment activation
+        run: |
+          echo $CONDA_DEFAULT_ENV
+          conda list
       - name: Verify installation
         run: |
+          conda activate cross_platform_env
           python tests/test_imports.py
