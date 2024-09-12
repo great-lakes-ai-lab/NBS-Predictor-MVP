@@ -4,12 +4,12 @@ import sys
 # List of packages to test
 packages = [
     "scipy",
-    "scikit-learn",
+    "sklearn", # scikit-learn is imported as sklearn
     "boto3",
     "botocore",
     "cfgrib",
     "pandas",
-    "netcdf4",
+    "netCDF4", # netcdf4 is imported as netCDF4
     "numpy",
     "jupyter",
     "jupyterlab",
@@ -17,7 +17,7 @@ packages = [
     "matplotlib",
     "PIL",  # Pillow is imported as PIL
     "zlib",
-    "zeromq",
+    "zmq",  # zeromq is imported as zmq (pyzmq)
     "yaml",
     "xarray",
     "joblib",
@@ -25,18 +25,18 @@ packages = [
     "astunparse",
     "flatbuffers",
     "gast",
-    "google_pasta",
+    "pasta",
     "grpc",
     "h5py",
     "keras",
     "clang",
     "markdown",
-    "markdown_it_py",
+    "markdown_it",
     "mdurl",
-    "mld_hypes",
+    "ml_dtypes",
     "opt_einsum",
     "optree",
-    "protobuf",
+    "google.protobuf",
     "rich",
     "tensorboard",
     "tensorboard_data_server",
