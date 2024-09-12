@@ -19,9 +19,9 @@ jobs:
           - macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: cross_platform_env
           environment-file: environment.yml
@@ -34,18 +34,17 @@ jobs:
           conda env update -f environment.yml
           conda init bash
           conda config --set auto_activate_base false
-          source $(conda info --base)/etc/profile.d/conda.sh
           conda activate cross_platform_env
+      - name: Check system architecture
+        run: uname -m 
       - name: Verify environment activation
         shell: bash -l {0}
         run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
           conda activate cross_platform_env
           echo $CONDA_DEFAULT_ENV
           conda list
-      - name: Verify installation
+      - name: Verify installation (import test)
         shell: bash -l {0}
         run: |
-          source $(conda info --base)/etc/profile.d/conda.sh
           conda activate cross_platform_env
           python tests/test_imports.py

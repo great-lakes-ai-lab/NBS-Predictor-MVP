@@ -1,23 +1,30 @@
-# tests/test_imports.py
 import sys
+import platform
+import os
+
+# Print system info
+print(f"Python version: {sys.version}")
+print(f"Platform: {platform.system()} {platform.release()}")
+print(f"Machine: {platform.machine()}")
+print(f"Environment: {os.getenv('CONDA_DEFAULT_ENV')}")
 
 # List of packages to test
 packages = [
     "scipy",
-    "sklearn", # scikit-learn is imported as sklearn
+    "sklearn",
     "boto3",
     "botocore",
     "cfgrib",
     "pandas",
-    "netCDF4", # netcdf4 is imported as netCDF4
+    "netCDF4",
     "numpy",
     "jupyter",
     "jupyterlab",
     "ipykernel",
     "matplotlib",
-    "PIL",  # Pillow is imported as PIL
+    "PIL",
     "zlib",
-    "zmq",  # zeromq is imported as zmq (pyzmq)
+    "zmq",
     "yaml",
     "xarray",
     "joblib",
@@ -50,11 +57,15 @@ packages = [
 def test_imports(packages):
     failed_imports = []
     for pkg in packages:
+        print(f"Testing import for package: {pkg}")
         try:
             __import__(pkg)
             print(f"Successfully imported {pkg}")
         except ImportError as e:
             print(f"Failed to import {pkg}: {e}")
+            failed_imports.append(pkg)
+        except Exception as e:
+            print(f"An error occurred while importing {pkg}: {e}")
             failed_imports.append(pkg)
     return failed_imports
 
