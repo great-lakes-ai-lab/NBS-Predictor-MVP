@@ -3,10 +3,10 @@ name: Environment Setup
 on:
   push:
     branches:
-      - demo
+      - mvp_demo_dj
   pull_request:
     branches:
-      - demo
+      - mvp_demo_dj
 jobs:
   build:
     runs-on: ${{ matrix.os }}
