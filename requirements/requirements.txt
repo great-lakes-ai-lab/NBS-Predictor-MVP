@@ -16,7 +16,27 @@ tzdata==2024.1               # Time zone database updates
 # Machine Learning and Scientific Computing Libraries
 scikit-learn==1.4.2  # Machine learning modeling
 scipy==1.13.0        # Scientific and technical computing
+torch==2.3.1
 
 # Compatibility and Utility Libraries
 six==1.16.0          # Python 2 and 3 compatibility
 threadpoolctl==3.4.0 # Control number of threads used in scikit-learn
+
+# Data handling
+xarray==2024.6.0
+
+# jax
+jax==0.4.30
+jaxlib==0.4.30
+
+# arviz
+arviz==0.17.1
+
+# sphnix for automatic documentation
+Sphinx==7.3.7
+sphinxcontrib-applehelp==1.0.8
+sphinxcontrib-devhelp==1.0.6
+sphinxcontrib-htmlhelp==2.0.5
+sphinxcontrib-jsmath==1.0.1
+sphinxcontrib-qthelp==1.0.7
+sphinxcontrib-serializinghtml==1.1.10
