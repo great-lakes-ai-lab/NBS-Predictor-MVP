@@ -7,8 +7,8 @@ from sklearn.ensemble import (
 )
 from sklearn.linear_model import LinearRegression
 
-from src.modeling.modeling import ModelBase
-from src.postprocessing.postprocessing import output_forecast_results
+from modeling.modeling import ModelBase
+from postprocessing.postprocessing import output_forecast_results
 
 __all__ = [
     # Classes
