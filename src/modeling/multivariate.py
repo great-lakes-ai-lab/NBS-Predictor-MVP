@@ -4,7 +4,7 @@ import numpyro
 from jax import numpy as jnp
 from numpyro import distributions as dist
 
-from modeling.modeling import NumpyroModel
+from src.modeling.modeling import NumpyroModel
 
 __all__ = [
     # Classes

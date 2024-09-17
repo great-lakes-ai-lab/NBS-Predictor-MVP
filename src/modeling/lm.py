@@ -4,8 +4,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from xarray.core.dataarray import DataArray
 
-from modeling.modeling import ModelBase
-from postprocessing.postprocessing import output_forecast_results
+from src.modeling.modeling import ModelBase
+from src.postprocessing.postprocessing import output_forecast_results
 
 
 class LinearModel(ModelBase):
