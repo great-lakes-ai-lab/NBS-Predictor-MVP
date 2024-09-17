@@ -1,17 +1,126 @@
-from abc import ABC
-
 import gpytorch
+import jax
 import numpy as np
+import numpyro
 import torch
 import xarray as xr
+from abc import ABC
+from jax import numpy as jnp
+from numpyro import distributions as dist
 from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor, kernels
 
-from modeling.modeling import ModelBase
-from postprocessing import output_forecast_results
-from utils import flatten_array, lag_array
+from src.modeling.modeling import ModelBase, NumpyroModel
+from src.postprocessing import output_forecast_results
+from src.utils import flatten_array, lag_array
 
-__all__ = ["SklearnGPModel", "LaggedSklearnGP"]
+import logging
+
+__all__ = ["SklearnGPModel", "LaggedSklearnGP", "MultitaskGP"]
+
+logger = logging.getLogger(__name__)
+
+
+# Kernel definitions are taken from https://www.cs.toronto.edu/~duvenaud/cookbook/
+def rbf_kernel(X, Z, lengthscale, variance, noise=None, jitter=1e-6):
+    # See https://num.pyro.ai/en/latest/examples/gp.html
+    diffs = jnp.sqrt(((X[:, None] - Z) ** 2).sum(axis=-1))
+    output = variance * jnp.exp(-0.5 * diffs**2 / lengthscale**2)
+
+    if noise is not None:
+        output += (noise + jitter) * jnp.eye(X.shape[0])
+    return output
+
+
+def matern_kernel(X, Z, lengthscale=1.0, nu=1.0):
+    raise NotImplemented
+
+
+class NumpyroLagGP(NumpyroModel):
+
+    @property
+    def coords(self):
+        pass
+
+    @property
+    def dims(self):
+        pass
+
+    @staticmethod
+    def model(y, y_index, lags, covariates, future=0):
+        lengthscale = numpyro.sample("lengthscale", dist.Gamma(2, 1))
+        noise = numpyro.sample("noise", dist.HalfNormal(1))
+        variance = numpyro.sample("variance", dist.HalfNormal(1))
+
+        y_lag = lags["y"]
+        lagged_y = lag_array(y, range(1, y_lag + 1))
+
+        if future > 0:
+            fit_y, fit_covars, fit_lag_y = (
+                y[y_lag:-future],
+                covariates[y_lag:-future],
+                lagged_y[y_lag:-future],
+            )
+
+            fit_covars = jnp.concatenate(
+                [fit_covars, fit_lag_y], axis=1
+            )  # make a new set of covariates
+            test_y, test_x, initial = y[-future:], covariates[-future:], fit_y[-y_lag:]
+        else:
+            fit_y, fit_covars = y[y_lag:], covariates[y_lag:]
+            test_y, test_x, initial = None, None, None
+
+        k = rbf_kernel(fit_covars, fit_covars, lengthscale, variance, noise)
+
+        train_estimates = numpyro.sample(
+            "y",
+            dist.MultivariateNormal(
+                loc=jnp.zeros(covariates.shape[0]), covariance_matrix=k
+            ),
+            obs=fit_y,
+        )
+
+        # do GP prediction for a given set of hyperparameters. this makes use of the well-known
+        # formula for Gaussian process predictions
+        def transition(carry, covariates):
+
+            X, Y, X_test = covariates
+
+            new_covars = jnp.concatenate([X_test, carry], axis=1)
+
+            k_pp = rbf_kernel(new_covars, new_covars, variance, lengthscale, noise)
+            k_pX = rbf_kernel(new_covars, X, variance, lengthscale)
+            k_XX = rbf_kernel(X, X, variance, lengthscale, noise)
+
+            # since K_xx is symmetric positive-definite, we can use the more efficient and
+            # stable Cholesky decomposition instead of matrix inversion
+            K_xx_cho = jax.scipy.linalg.cho_factor(k_XX)
+            K = k_pp - jnp.matmul(k_pX, jax.scipy.linalg.cho_solve(K_xx_cho, k_pX.T))
+            mean = jnp.matmul(k_pX, jax.scipy.linalg.cho_solve(K_xx_cho, Y))
+
+            # we return both the mean function and a sample from the posterior predictive for the
+            # given set of hyperparameters
+            return (mean, mean + sigma_noise)
+
+        if future > 0:
+            with numpyro.handlers.condition(data={"y": test_y}):
+                _, ys = scan(transition_fn, test_y, covars)
+            jax.lax.scan()
+
+    @property
+    def name(self):
+        return "NumpyroGP"
+
+    def __init__(self, *args, **kwargs):
+        # See https://num.pyro.ai/en/latest/examples/gp.html - this example is adapted for an auto-regressive model
+        super().__init__(*args, **kwargs)
+
+    def save(self, path):
+        pass
+
+    @classmethod
+    def load(cls, path):
+        pass
 
 
 class SklearnGPModel(ModelBase, ABC):
@@ -151,7 +260,9 @@ class GPyTorchKernel(gpytorch.models.ExactGP):
             gpytorch.means.ConstantMean(), num_tasks=num_tasks
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.MaternKernel(), num_tasks=num_tasks, rank=self.rank
+            gpytorch.kernels.MaternKernel() * gpytorch.kernels.RQKernel(),
+            num_tasks=num_tasks,
+            rank=self.rank,
         )
 
     def forward(self, x):
@@ -208,7 +319,10 @@ class MultitaskGP(ModelBase):
             output = self.kernel(X)
             loss = -self.mll(output, y)
             loss.backward()
-            print("Iter %d/%d - Loss: %.3f" % (i + 1, self.epochs, loss.item()))
+            if i % 50 == 0:
+                logger.info(
+                    "Iter %d/%d - Loss: %.3f" % (i + 1, self.epochs, loss.item())
+                )
             self.optim.step()
 
     def predict(self, X, y=None, forecast_steps=12, *args, **kwargs) -> xr.DataArray:

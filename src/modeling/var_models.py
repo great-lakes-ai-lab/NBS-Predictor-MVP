@@ -112,7 +112,6 @@ class VAR(NumpyroModel):
             )
             for cov, lag in lags.items()
         ]
-
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
         with numpyro.plate("lakes", size=4):
@@ -221,7 +220,7 @@ class NARX(NumpyroModel):
         L_Omega = sigma[..., None] * l_omega
 
         input_dim = 4 * lags["y"] + covars.shape[-1]
-        h1 = 16
+        h1 = 8
         output_dim = 4  # 4 lakes
 
         # first layer of the neural network
@@ -230,6 +229,7 @@ class NARX(NumpyroModel):
         )
         b1 = numpyro.sample("b1", dist.Normal(jnp.zeros(h1), jnp.ones(h1)))
 
+        # output layer of the neural network
         w2 = numpyro.sample(
             "w2",
             dist.Normal(jnp.zeros((h1, output_dim)), jnp.ones((h1, output_dim))),
@@ -239,6 +239,15 @@ class NARX(NumpyroModel):
         )
 
         def transition_fn(carry, covars):
+            """
+            Function for predicting the next value in the time series given the previous values and covariates.
+            Args:
+                carry: The previous prediction of the time series
+                covars: The covariates for this time step
+            Returns:
+                A tuple containing the next values to carry forward (y value plus the lag) and the
+                predicted value for this time step.
+            """
             prev_y = carry
 
             input_vals = jnp.concatenate([carry.reshape(-1), covars], axis=-1)

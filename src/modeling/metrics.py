@@ -9,6 +9,7 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
     root_mean_squared_error,
+    mean_absolute_percentage_error,
 )
 
 __all__ = [
@@ -87,6 +88,8 @@ def summarize(df, crps_func=crps_gaussian):
     return pd.Series(
         {
             "rmse": root_mean_squared_error(df["mean"], df["true"]),
+            "mae": mean_absolute_error(df["mean"], df["true"]),
+            "mape": mean_absolute_percentage_error(df["mean"], df["true"]),
             "variance": np.var(df["mean"] - df["true"]),
             "bias": np.mean(df["mean"] - df["true"]),
             "coverage": np.mean(
