@@ -8,10 +8,6 @@ from src.modeling.modeling import ModelBase
 from src.postprocessing.postprocessing import output_forecast_results
 
 
-def working_hotelling(alpha, n):
-    return np.sqrt(2 * stats.distributions.f.cdf(alpha, 2, n - 2))
-
-
 class LinearModel(ModelBase):
     def __init__(self):
         super(LinearModel, self).__init__()
@@ -51,11 +47,11 @@ class LinearModel(ModelBase):
         )
         stddev_est = np.sqrt(broadcasted_vector * x_diffs)
 
-        wh_num = working_hotelling(1 - alpha, self.n)
+        t_dist = np.abs(stats.t.ppf(alpha / 2, self.n - 2))
 
         lower, upper = (
-            predictions - wh_num * stddev_est,
-            predictions + wh_num * stddev_est,
+            predictions - t_dist * stddev_est,
+            predictions + t_dist * stddev_est,
         )
 
         outputs = np.stack([predictions, lower, upper, stddev_est], axis=2)[
