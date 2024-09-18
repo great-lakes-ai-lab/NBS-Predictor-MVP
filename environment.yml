@@ -1,22 +1,51 @@
-name: nbs-predictor-mvp
+---
+name: cross_platform_env
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
-  - python=3.11
-  - gpytorch
-  - jax[version='0.4.31']
-  - numpy
-  - numpyro
+  - python=3.9
+  - scipy
+  - scikit-learn=1.5.0
+  - boto3
+  - botocore
+  - cfgrib
   - pandas
-  - plotnine
-  - pytorch::pytorch
-  - scikit-learn
-  - torchaudio
-  - torchvision
+  - netcdf4
+  - numpy
+  - joblib
+  - jupyter
+  - jupyterlab
+  - ipykernel
+  - matplotlib
+  - pillow
+  - zlib
+  - zeromq
+  - pyyaml
   - xarray
-  - pytest
-  - arviz
-  - scipy[version='<1.13']
-  - properscoring
-  - jaxlib[version='0.4.31']
+  - pip
+  - pip:
+      - absl-py
+      - astunparse
+      - flatbuffers
+      - gast
+      - google-pasta
+      - grpcio
+      - h5py
+      - keras
+      - libclang
+      - markdown
+      - markdown-it-py
+      - mdurl
+      - ml-dtypes
+      - opt-einsum
+      - optree
+      - protobuf
+      - rich
+      - tensorboard
+      - tensorboard-data-server
+      - tensorflow
+      - tensorflow-intel
+      - termcolor
+      - werkzeug
+      - wrapt
