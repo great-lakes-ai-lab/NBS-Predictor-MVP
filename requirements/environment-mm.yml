@@ -1,0 +1,22 @@
+name: nbs-predictor-mvp
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - gpytorch
+  - jax[version='0.4.31']
+  - numpy
+  - numpyro
+  - pandas
+  - plotnine
+  - pytorch::pytorch
+  - scikit-learn
+  - torchaudio
+  - torchvision
+  - xarray
+  - pytest
+  - arviz
+  - scipy[version='<1.13']
+  - properscoring
+  - jaxlib[version='0.4.31']
