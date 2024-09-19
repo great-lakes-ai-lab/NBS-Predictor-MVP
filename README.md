@@ -106,7 +106,7 @@ conda deactivate
 │   │  
 │   ├── exploratory               # Notebooks for initial exploration.
 │   │  
-│   └── production                # Production-ready notebooks.
+│   └── production                # Production-ready notebooks (USE THESE FOR A DEMO!)
 │
 ├── requirements                  # Directory containing the requirement files.
 │   └── environment.yml           # Conda environment configuration file
