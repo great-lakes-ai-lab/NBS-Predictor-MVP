@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9
+  - python=3.11.4
   - scipy
   - scikit-learn=1.5.0
   - boto3

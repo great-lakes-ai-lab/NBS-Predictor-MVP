@@ -3,10 +3,10 @@ name: Environment Setup
 on:
   push:
     branches:
-      - mvp_demo_dj
+      - main
   pull_request:
     branches:
-      - mvp_demo_dj
+      - main
 jobs:
   setup-and-test:
     runs-on: ${{ matrix.os }}
@@ -14,20 +14,23 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - macos-latest
           - ubuntu-latest
           - windows-latest
-          - macos-latest
+          - windows-2019
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: cross_platform_env
           environment-file: environment.yml
           auto-update-conda: true
-          python-version: 3.9
           miniconda-version: "latest"  # Specify to ensure Miniconda is downloaded and installed
+
       - name: Install dependencies
         shell: bash -l {0}
         run: |
@@ -35,14 +38,17 @@ jobs:
           conda init bash
           conda config --set auto_activate_base false
           conda activate cross_platform_env
+
       - name: Check system architecture
         run: uname -m 
+
       - name: Verify environment activation
         shell: bash -l {0}
         run: |
           conda activate cross_platform_env
           echo $CONDA_DEFAULT_ENV
           conda list
+
       - name: Verify installation (import test)
         shell: bash -l {0}
         run: |
