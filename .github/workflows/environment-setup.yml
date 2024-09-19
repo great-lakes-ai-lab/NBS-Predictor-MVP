@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - dcj-tmp-add-test
   pull_request:
     branches:
       - main
-      - dcj-tmp-add-test
 jobs:
   setup-and-test:
     runs-on: ${{ matrix.os }}
@@ -50,7 +48,7 @@ jobs:
           conda activate cross_platform_env
           echo $CONDA_DEFAULT_ENV
           conda list
-          
+
       - name: Verify installation (import test)
         shell: bash -l {0}
         run: |
