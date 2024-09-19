@@ -27,14 +27,14 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: cross_platform_env
-          environment-file: environment.yml
+          environment-file: requirements/environment.yml
           auto-update-conda: true
           miniconda-version: "latest"  # Specify to ensure Miniconda is downloaded and installed
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          conda env update -f environment.yml
+          conda env update -f requirements/environment.yml
           conda init bash
           conda config --set auto_activate_base false
           conda activate cross_platform_env
