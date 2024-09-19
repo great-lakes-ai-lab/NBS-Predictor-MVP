@@ -3,11 +3,12 @@ name: Environment Setup
 on:
   push:
     branches:
-      - mvp_demo_dj
+      - main
       - dcj-tmp-add-test
   pull_request:
     branches:
-      - mvp_demo_dj
+      - main
+      - dcj-tmp-add-test
 jobs:
   setup-and-test:
     runs-on: ${{ matrix.os }}
@@ -15,10 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - macos-latest
           - ubuntu-latest
           - windows-latest
           - windows-2019
-          - macos-latest
+          
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,7 +30,7 @@ jobs:
           activate-environment: cross_platform_env
           environment-file: environment.yml
           auto-update-conda: true
-          python-version: 3.9
+          python-version: 3.11.4
           miniconda-version: "latest"  # Specify to ensure Miniconda is downloaded and installed
       - name: Install dependencies
         shell: bash -l {0}
