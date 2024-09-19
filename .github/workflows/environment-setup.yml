@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - mvp_demo_dj
+      - dcj-tmp-add-test
   pull_request:
     branches:
       - mvp_demo_dj
@@ -15,19 +16,25 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - windows-latest
           - macos-latest
+          - windows-latest
+        python-version:
+          - '3.9'
+          - '3.11.4'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Setup Conda
+        
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: cross_platform_env
           environment-file: environment.yml
           auto-update-conda: true
-          python-version: 3.9
-          miniconda-version: "latest"  # Specify to ensure Miniconda is downloaded and installed
+          python-version: ${{ matrix.python-version }}
+          miniconda-version: "latest"
+
       - name: Install dependencies
         shell: bash -l {0}
         run: |
@@ -35,16 +42,56 @@ jobs:
           conda init bash
           conda config --set auto_activate_base false
           conda activate cross_platform_env
+
       - name: Check system architecture
-        run: uname -m 
+        run: uname -m
+
       - name: Verify environment activation
         shell: bash -l {0}
         run: |
           conda activate cross_platform_env
           echo $CONDA_DEFAULT_ENV
           conda list
+
       - name: Verify installation (import test)
         shell: bash -l {0}
+        run: |
+          conda activate cross_platform_env
+          python tests/test_imports.py
+          
+  test-windows-10-enterprise:
+    runs-on: windows-2019  # Use the closest available runner; update this if a more specific Windows 10 Enterprise version becomes available
+    strategy:
+      matrix:
+        python-version: ['3.11.4']
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: cross_platform_env
+          environment-file: environment.yml
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          miniconda-version: "latest"
+        
+      - name: Install dependencies
+        run: |
+          conda env update -f environment.yml
+          conda init bash
+          conda config --set auto_activate_base false
+          conda activate cross_platform_env
+          
+      - name: Verify environment activation
+        run: |
+          conda activate cross_platform_env
+          echo %CONDA_DEFAULT_ENV%
+          conda list
+
+      - name: Verify installation (import test)
         run: |
           conda activate cross_platform_env
           python tests/test_imports.py
