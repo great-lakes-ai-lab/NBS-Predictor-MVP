@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - mvp_demo_dj
+      - dcj-tmp-add-test
   pull_request:
     branches:
       - mvp_demo_dj
