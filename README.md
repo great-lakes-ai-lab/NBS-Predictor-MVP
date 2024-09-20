@@ -81,6 +81,15 @@ jupyter lab
 
 Navigate to the notebook you want to run (e.g. `notebooks/production/2_LEF_forecast_model.ipynb`) and open it. 
 
+### Set Up the Data Directory
+
+The MVP assumes that you have a `Data` directory with a necessary input mask file. From the `NBS-Predictor-MVP` directory, run these commands to set it up:
+```
+mkdir ../Data/Input/
+cp notebooks/production/GL_mask.nc ../Data/Inputs/
+```
+Once you run the download scripts, you will also see downloaded forecast files and CSV summary files in this directory.
+
 ### Manually Set Paths
 
 Currently, paths to data directories are treated as user inputs. Users will need to manually set the full path to their local data directory. 
@@ -117,40 +126,59 @@ conda deactivate
 
 ### Project Organization 
 
-```
-├── LICENSE
-│
-├── docs/
-│   ├── MAKEFILE.md               # Detailed documentation Makefile (NOT CURRENTLY IN USE)
-│   └── ...                       # Other documentation files
-│
-├── Makefile                      # Makefile with commands like `make init` or `make lint-requirements` (Optional)
-│
-├── README.md                     # The top-level README for developers and users.
-│
-├── notebooks                     # Jupyter notebooks. Naming convention is a number (for ordering),
-│   │                             # the creator's initials, and a short `-` delimited description, e.g.
-│   │                             # `1.0_MMM_initial-data-exploration`.
-│   │  
-│   ├── exploratory               # Notebooks for initial exploration.
-│   │  
-│   └── production                # Production-ready notebooks (USE THESE FOR A DEMO!)
-│
-├── requirements                  # Directory containing the requirement files.
-│   └── environment.yml           # Conda environment configuration file
-│
-├── src                           # Source code (NOT CURRENTLY IN USE)
-│   ├── README.md                 # Documentation about the src directory
-│   ├── composition.py            # File containing composition-related functions/classes
-│   ├── constants.py              # File storing project constants
-│   ├── data_loading              # Directory for data loading scripts
-│   ├── modeling                  # Directory for modeling-related scripts
-│   ├── postprocessing            # Directory for postprocessing scripts
-│   ├── preprocessing             # Directory for preprocessing scripts
-│   ├── utils.py                  # Utility functions
-│   └── tests                     # Scripts for unit tests of functions
+#### Main Project Directory
+
+Below is the structure of the main project directory, as reflected in this repository: 
 
 ```
+NBS-Predictor-MVP/ # Main project directory
+├── LICENSE # Licensing information
+│
+├── docs/ # Documentation (NOT CURRENTLY IN USE)
+│ ├── MAKEFILE.md # Detailed documentation Makefile 
+│ └── ... # Other documentation files
+│
+├── README.md # The top-level README for developers and users.
+│
+├── notebooks # Jupyter notebooks. Naming convention is a number (for ordering),
+│ │ # the creator's initials, and a short - delimited description, e.g.
+│ │ # 1.0_MMM_initial-data-exploration.
+│ │
+│ ├── exploratory # Notebooks for initial exploration.
+│ │
+│ └── production # Production-ready notebooks (DEMO)
+│
+├── requirements # Directory containing the requirement files.
+│ └── environment.yml # Conda environment configuration file
+│
+├── src # Source code (NOT CURRENTLY IN USE)
+│ ├── README.md # Documentation about the src directory
+│ ├── composition.py # File containing composition-related functions/classes
+│ ├── constants.py # File storing project constants
+│ ├── data_loading # Directory for data loading scripts
+│ ├── modeling # Directory for modeling-related scripts
+│ ├── postprocessing # Directory for postprocessing scripts
+│ ├── preprocessing # Directory for preprocessing scripts
+│ ├── utils.py # Utility functions
+│ └── tests # Scripts for unit tests of functions
+```
+
+#### Data Directory
+
+The `Data` directory can sit at the same level as `NBS-Predictor-MVP` and contains the input data needed for the project:
+
+```
+Data/ # Parent directory for input data
+├── Input/ # Input data directory
+│ └── GL_mask.nc # Mask file, needs to be copied from notebooks/production
+│
+│   # Forecast files below will be created by a script/notebook if they don't already exist
+├── CFS_EVAP_forecasts_Sums_CMS.csv # Evaporation forecasts
+├── CFS_PCP_forecasts_Sums_CMS.csv  # Precipitation forecasts
+├── CFS_TMP_forecasts_Avgs_K.csv    # Air temperature forecasts
+```
+
+Note that the `Data` directory can be placed anywhere, as long as the paths are updated appropriately. 
 
 ## Contributing
 
