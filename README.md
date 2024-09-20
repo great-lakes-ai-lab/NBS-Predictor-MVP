@@ -71,7 +71,7 @@ python -m ipykernel install --user --name cross_platform_env --display-name "Pyt
 
 This command registers the Conda environment as a kernel in Jupyter, so it can be selected when running notebooks.
 
-3. **Running the Jupyter Notebook 
+3. **Running the Jupyter Notebook**: 
 
 Start the Jupyter Notebook server. If you are using jupyter lab, use this command:  
 
