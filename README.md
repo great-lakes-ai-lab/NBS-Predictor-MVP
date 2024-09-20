@@ -71,6 +71,34 @@ python -m ipykernel install --user --name cross_platform_env --display-name "Pyt
 
 This command registers the Conda environment as a kernel in Jupyter, so it can be selected when running notebooks.
 
+3. **Running the Jupyter Notebook 
+
+Start the Jupyter Notebook server. If you are using jupyter lab, use this command:  
+
+```
+jupyter lab
+```
+
+Navigate to the notebook you want to run (e.g. `notebooks/production/2_LEF_forecast_model.ipynb`) and open it. 
+
+### Manually Set Paths
+
+Currently, paths to data directories are treated as user inputs. Users will need to manually set the full path to their local data directory. 
+
+In each notebook, there is a section titled 'User Input' where these paths should be specified.
+
+For example, the variable for the path to the `Data` directory is named `dir`. You need to replace this variable with the full path to your data folder on your machine.
+
+Here is a sample code snippet from the 'User Input' section:
+
+```python
+# Example of "User Input" section in a notebook
+# Path to download data to
+dir = 'C:/Users/username/Desktop/Data/'
+```
+
+Make sure to update this variable in each notebook where it is required.
+
 ### Managing the Conda Environment
 
 If you need to update the Conda environment with new dependencies, update `requirements/environment.yml`, and then run:
