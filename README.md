@@ -230,3 +230,7 @@ Please read the [code of conduct](CODE_OF_CONDUCT.md) file to learn more about o
 ## License
 
 This project is licensed under the terms of the GNU Affero General Public License Version 3.0.
+
+## References
+
+Related papers and presentations can be listed here. 
