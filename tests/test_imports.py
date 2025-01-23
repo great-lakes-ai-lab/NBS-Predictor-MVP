@@ -1,6 +1,7 @@
 import sys
 import platform
 import os
+import pytest
 
 # Print system info
 print(f"Python version: {sys.version}")
@@ -54,24 +55,6 @@ packages = [
 ]
 
 # Function to test importing each package
-def test_imports(packages):
-    failed_imports = []
-    for pkg in packages:
-        print(f"Testing import for package: {pkg}")
-        try:
-            __import__(pkg)
-            print(f"Successfully imported {pkg}")
-        except ImportError as e:
-            print(f"Failed to import {pkg}: {e}")
-            failed_imports.append(pkg)
-        except Exception as e:
-            print(f"An error occurred while importing {pkg}: {e}")
-            failed_imports.append(pkg)
-    return failed_imports
-
-if __name__ == "__main__":
-    failed = test_imports(packages)
-    if failed:
-        sys.exit(f"Failed to import the following packages: {', '.join(failed)}")
-    else:
-        print("All packages imported successfully!")
+@pytest.mark.parametrize("pkg", packages)
+def test_imports(pkg):
+    assert __import__(pkg), f"Could not import {pkg}"

@@ -123,7 +123,6 @@ class VAR(LinearAR):
         nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
         ar_lag = max_lag = lags.get("y")
-        covars = jnp.array(covariates)
 
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
