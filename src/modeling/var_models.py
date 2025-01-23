@@ -96,22 +96,13 @@ class VAR(NumpyroModel):
         nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
         ar_lag = max_lag = lags.get("y")
+        covars = jnp.array(covariates)
 
-        # remove all lagging for covariates
-        lagged_covars = [
-            jnp.array(covariates.sel(variable=covar))[ar_lag:]
-            for covar, _ in lags.items()
-            if covar != "y"
-        ]
-
-        covar_alphas = [
-            numpyro.sample(
-                f"{cov}_alpha",
+        covar_alphas = numpyro.sample(
+                f"alpha_lake",
                 dist.Normal(0, 0.5),
-                sample_shape=(4, 4, lag) if cov == "y" else (4, 4),  # lag at 0
-            )
-            for cov, lag in lags.items()
-        ]
+                sample_shape=(4, (covars.shape[-1], 4))
+        )
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
         with numpyro.plate("lakes", size=4):
@@ -127,7 +118,7 @@ class VAR(NumpyroModel):
             prev_y = carry
             month_t = covars[0]
 
-            lagged_series = [prev_y, *[df.T for df in covars[1:]]]
+            lagged_series = [prev_y, covars]
 
             m = jnp.zeros((4,))
 
@@ -156,7 +147,7 @@ class VAR(NumpyroModel):
         months = jnp.array(y_index.month - 1)
         initial_values = prev
 
-        covars = (months[max_lag:], *lagged_covars)
+        covars = (months[max_lag:], covars)
 
         if future > 0:
             y_fit = y[:-future]
@@ -206,12 +197,7 @@ class NARX(NumpyroModel):
 
         ar_lag = max_lag = lags.get("y")
 
-        lagged_covars = [
-            jnp.array(covariates.sel(variable=covar))[max_lag:]
-            for covar, lag in lags.items()
-            if covar != "y"
-        ]
-        covars = jnp.concatenate(lagged_covars, axis=-1)
+        covars = jnp.array(covariates)
 
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
