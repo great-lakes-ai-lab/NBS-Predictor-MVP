@@ -4,7 +4,7 @@ import arviz as az
 import numpy as np
 import xarray as xr
 from jax import numpy as jnp
-from jax.random import PRNGKey
+import jax
 from numpyro.diagnostics import hpdi
 from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.metrics import accuracy_score
@@ -192,7 +192,7 @@ class NumpyroModel(ModelBase):
         return results
 
     def get_rng_key(self):
-        return PRNGKey(np.random.randint(1e3))
+        return jax.random.key(np.random.randint(1e3))
 
 
 def split_data(data, target_column):
