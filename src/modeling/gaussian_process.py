@@ -20,10 +20,6 @@ from src.postprocessing import output_forecast_results
 from src.utils import flatten_array, lag_array
 
 
-numpyro.set_host_device_count(1)
-numpyro.set_platform("cuda")
-
-
 __all__ = [
     "SklearnGPModel",
     "LaggedSklearnGP",
@@ -280,6 +276,7 @@ class HierarchicalARGP(NumpyroModel):
         y=None,
         sample_subset=None,
         device=None,
+        alpha=0.05,
         *args,
         **kwargs,
     ):
@@ -316,9 +313,12 @@ class HierarchicalARGP(NumpyroModel):
             y = self.train_y
         else:
             y = jnp.array(y[:-forecast_steps])
-
+        
         if rng_key is None:
             rng_key = self.get_rng_key()
+        
+        date_labels = X_test.indexes["Date"][-forecast_steps:]
+        X_test_array = jnp.array(X_test)
 
         # The X_test values provided should be for each time step and START at basically 1 month ahead
         # We are also assuming that the y values, if provided, are longer than the forecast steps, so
@@ -326,10 +326,10 @@ class HierarchicalARGP(NumpyroModel):
         # the first row of X_test.
         param_dict = {k: v[:sample_subset] for k, v in self.posterior_samples.items()}
         vmap_args = (
-            jax.random.split(rng_key, (post_sims, 4)),
+            jax.random.split(rng_key, (sample_subset, 4)),
             X,
             y,
-            X_test[:forecast_steps],
+            X_test_array[:forecast_steps],
             param_dict["kernel_var_l"],
             param_dict["kernel_length_l"],
             param_dict["kernel_noise_l"],
@@ -347,10 +347,19 @@ class HierarchicalARGP(NumpyroModel):
         )
         forecast_fn = jax.vmap(forecast_fn, in_axes=(1, None, 1, None, 1, 1, 1))
 
-        outputs = forecast_fn(*vmap_args)
+        # note that here, we're ignoring the output of the mean and going just for the forecasted values
+        _, preds = forecast_fn(*vmap_args)
+        preds = preds.transpose(2, 0, 1)
 
-        # now, format the outputs
-        return output_forecast_results(outputs)
+        # forecast -> lake -> value
+        pred_outputs = jnp.stack([
+            preds.mean(axis=-1),
+            jnp.quantile(preds, alpha/2, axis=-1),
+            jnp.quantile(preds, 1-alpha/2, axis=-1),
+            preds.std(axis=-1)
+        ], axis=2)
+
+        return output_forecast_results(pred_outputs, forecast_labels=date_labels, lakes=self.lakes)
 
 
 class SklearnGPModel(ModelBase, ABC):
