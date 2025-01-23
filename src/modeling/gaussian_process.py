@@ -1,10 +1,12 @@
+import logging
+from abc import ABC
+
 import gpytorch
 import jax
 import numpy as np
 import numpyro
 import torch
 import xarray as xr
-from abc import ABC
 from jax import numpy as jnp
 from numpyro import distributions as dist
 from scipy.stats import norm
@@ -14,11 +16,14 @@ from src.modeling.modeling import ModelBase, NumpyroModel
 from src.postprocessing import output_forecast_results
 from src.utils import flatten_array, lag_array
 
-import logging
-
 __all__ = ["SklearnGPModel", "LaggedSklearnGP", "MultitaskGP"]
 
 logger = logging.getLogger(__name__)
+
+
+# two conditional distributions
+# y | f dist normal
+# use 4x4 variance /covariance matrix
 
 
 # Kernel definitions are taken from https://www.cs.toronto.edu/~duvenaud/cookbook/
@@ -55,6 +60,9 @@ class NumpyroLagGP(NumpyroModel):
         y_lag = lags["y"]
         lagged_y = lag_array(y, range(1, y_lag + 1))
 
+        # FORWARD:
+        # Fit 4 separate GP models
+        # at the end, fit a fifth covariance matrix for the errors
         if future > 0:
             fit_y, fit_covars, fit_lag_y = (
                 y[y_lag:-future],
