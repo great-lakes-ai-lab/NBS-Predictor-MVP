@@ -30,4 +30,5 @@ def snapshot(lake_data):
     return snapshot
 
 
-skip_tests = os.environ.get("SKIP_FITS", "true").lower() == "true"
+# skip_tests = os.environ.get("SKIP_FITS", "true").lower() == "true"
+skip_tests = False

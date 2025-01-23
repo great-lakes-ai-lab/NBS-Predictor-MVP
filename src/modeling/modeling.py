@@ -171,8 +171,8 @@ class NumpyroModel(ModelBase):
         if rng_key is None:
             rng_key = self.get_rng_key()
 
-        # Using future, chop the last `num_steps_forward` values off and treat them as unknown. This allows
-        # the covariates to align with the test set
+        # Using future, chop the last `num_steps_forward` values off and treat
+        # them as unknown. This allows  the covariates to align with the test set
         forecast_marginal = self.predictive_fn(
             rng_key,
             y=jnp.array(y),
