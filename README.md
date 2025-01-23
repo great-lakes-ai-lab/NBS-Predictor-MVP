@@ -233,4 +233,6 @@ This project is licensed under the terms of the GNU Affero General Public Licens
 
 ## References
 
-Related papers and presentations can be listed here. 
+A description of this tool, along with some initial results, was presented at the AGU Fall Meeting in 2024: 
+
+Lindsay Fitzpatrick, Dani C Jones, Matt Mcanear, et al. Improving Subseasonal to Annual Water Level Forecasts in the North American Great Lakes Using Machine Learning. Authorea. January 22, 2025. [DOI:10.22541/essoar.173758147.79259133/v1](https://doi.org/10.22541/essoar.173758147.79259133/v1)
