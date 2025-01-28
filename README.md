@@ -1,9 +1,9 @@
 # NBS-Predictor-MVP
 
-Welcome to NBS-Predictor-MVP! We are excited to present a minimum viable product (MVP) designed to forecast net basin supply (NBS) for the Laurentian Great Lakes six months into the future using NOAA forecast data.
+Welcome to NBS-Predictor-MVP! We are excited to present a Minimum Viable Product (MVP) designed to forecast net basin supply (NBS) for the Laurentian Great Lakes six months into the future using NOAA forecast data.
 
-- **Target**: Forecast monthly net basin supply (NBS) for all of the Laurentian Great Lakes, for six months into the future.
-- **Inputs**: NOAA forecast data from the Climate Forecast System)(CFS).
+- **Target**: Forecast monthly net basin supply (NBS) for all Laurentian Great Lakes six months into the future.
+- **Inputs**: NOAA forecast data from the Climate Forecast System (CFS).
 
 ## Getting Started
 
@@ -13,9 +13,7 @@ Before getting started, make sure you have the following installed on your syste
 - **Conda** (Anaconda or Miniconda)
 - **Python 3.9** or later
 
-### Download the Repository
-
-You have two options to get the repository:
+## First Usage
 
 #### Option 1: Clone the Repository with Git
 
@@ -39,7 +37,7 @@ Alternatively, you can download the repository as a ZIP file and extract it:
 cd NBS-Predictor-MVP
 ```
 
-### Create a Conda Environment
+### Step 2: Create a Conda Environment
 
 Create a Conda environment using the `environment.yml` file located in the `requirements` folder:
 
@@ -53,7 +51,7 @@ Activate the Conda environment:
 conda activate cross_platform_env
 ```
 
-### Setting Up Jupyter Kernel
+### Step 3: Setting Up Jupyter Kernel
 
 After setting up the Conda environment, you need to register a Jupyter kernel for the environment so that you can run the notebooks in Jupyter.
 
@@ -63,44 +61,36 @@ After setting up the Conda environment, you need to register a Jupyter kernel fo
 conda install ipykernel
 ```
 
-2. **Create a new Jupyter kernel**:
+Create a new Jupyter kernel:
 
 ```bash
-python -m ipykernel install --user --name cross_platform_env --display-name "Python (cross_platform_env)"
+python -m ipykernel install --user --name cross_platform_env --display-name "Python (cross_platform_env)
 ```
 
 This command registers the Conda environment as a kernel in Jupyter, so it can be selected when running notebooks.
 
-3. **Running the Jupyter Notebook**: 
-
-Start the Jupyter Notebook server. If you are using jupyter lab, use this command:  
-
-```
-jupyter lab
-```
-
-Navigate to the notebook you want to run (e.g. `notebooks/production/2_LEF_forecast_model.ipynb`) and open it. 
-
-### Set Up the Data Directory
+### Step 4: Set Up the Data Directory
 
 The MVP assumes that you have a `Data` directory with a necessary input mask file. From the `NBS-Predictor-MVP` directory, run these commands to set it up:
-```
+
+```bash
 mkdir ../Data/Input/
-cp notebooks/production/GL_mask.nc ../Data/Inputs/
+cp notebooks/production/GL_mask.nc ../Data/Input/
 ```
+
 Once you run the download scripts, you will also see downloaded forecast files and CSV summary files in this directory.
 
-### Manually Set Paths
+### Step 5: Manually Set Paths
 
-Currently, paths to data directories are treated as user inputs. Users will need to manually set the full path to their local data directory. 
+Currently, paths to data directories are treated as user inputs. Users will need to manually set the full path to their local data directory.
 
 In each notebook, there is a section titled 'User Input' where these paths should be specified.
 
-For example, the variable for the path to the `Data` directory is named `dir`. You need to replace this variable with the full path to your data folder on your machine.
+For example, the variable for the path to the Data directory is named dir. You need to replace this variable with the full path to your data folder on your machine.
 
 Here is a sample code snippet from the 'User Input' section:
 
-```python
+```bash
 # Example of "User Input" section in a notebook
 # Path to download data to
 dir = 'C:/Users/username/Desktop/Data/'
@@ -108,23 +98,54 @@ dir = 'C:/Users/username/Desktop/Data/'
 
 Make sure to update this variable in each notebook where it is required.
 
-### Managing the Conda Environment
+## Subsequent Usage
 
-If you need to update the Conda environment with new dependencies, update `requirements/environment.yml`, and then run:
+### Step 1: Activate the Conda Environment
+Before starting your work, ensure you activate the Conda environment:
 
 ```bash
-conda env update -f requirements/environment.yml
+conda activate cross_platform_env
 ```
 
-### Deactivate the Conda Environment
+### Step 2: Running Jupyter Notebook or Jupyter Lab
+Start the Jupyter Lab server or Jupyter Notebook:
 
+```bash
+jupyter lab
+```
+
+### Step 3: Set Paths and Run Notebooks
+Navigate to the notebook you want to run (e.g., `notebooks/production/2_LEF_forecast_model.ipynb`) and open it. Ensure that the path variables in the 'User Input' section are correctly set.
+
+### Step 4: Deactivate the Conda Environment
 When you have finished working with the project, or if you need to return to your global Python environment, you can deactivate the Conda environment by running the following command:
 
 ```bash
 conda deactivate
 ```
 
-### Project Organization 
+Note: If you need to update the Conda environment with new dependencies, update requirements/environment.yml, and then run:
+
+```bash
+conda env update -f requirements/environment.yml
+```
+
+## Quick Usage Example
+
+Here's a quick example to get you started:
+
+Start the Jupyter Lab server:
+
+```bash
+jupyter lab
+```
+
+- Navigate to the `notebooks/production/2_LEF_forecast_model.ipynb` notebook and open it.
+- Set the `dir` variable in the 'User Input' section to the path of your Data directory.
+- Run through the cells to generate the forecast.
+
+
+## Project Organization 
 
 #### Main Project Directory
 
