@@ -42,14 +42,12 @@ class LakeMVT(NumpyroModel):
         pass
 
     @staticmethod
-    def model(y, y_index, lags, covariates, future=0):
-        global_bias = numpyro.sample("global_mu", dist.Normal(0, 3))
-
+    def model(y, y_index, future=0, **kwargs):
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
 
         with numpyro.plate("lakes", size=4):
             with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Laplace(global_bias, 3))
+                intercept = numpyro.sample("intercept", dist.Normal(0, 3))
 
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
         sigma = jnp.sqrt(theta)
@@ -60,20 +58,18 @@ class LakeMVT(NumpyroModel):
         # separate out the conditional from the forecasting. Wonky to match other forecasting methods
         months = (y_index.month - 1).values
         mu = intercept[months]
-        N = y.shape[0]
 
-        with numpyro.plate("obs", N):
-            if future > 0:
-                y_t = numpyro.sample(
-                    "y",
-                    dist.MultivariateStudentT(t_nu, loc=mu, scale_tril=L_Omega),
-                )
-            else:
-                y_t = numpyro.sample(
-                    "y",
-                    dist.MultivariateStudentT(t_nu, loc=mu, scale_tril=L_Omega),
-                    obs=y,
-                )
+        if future > 0:
+            y_t = numpyro.sample(
+                "y",
+                dist.MultivariateStudentT(t_nu, loc=mu, scale_tril=L_Omega),
+            )
+        else:
+            y_t = numpyro.sample(
+                "y",
+                dist.MultivariateStudentT(t_nu, loc=mu, scale_tril=L_Omega),
+                obs=y,
+            )
 
         if future > 0:
             numpyro.deterministic("y_forecast", y_t[-future:])

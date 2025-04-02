@@ -192,7 +192,7 @@ class NumpyroModel(ModelBase):
         return results
 
     def get_rng_key(self):
-        return jax.random.key(np.random.randint(1e3))
+        return jax.random.key(np.random.randint(1e5))
 
 
 def split_data(data, target_column):

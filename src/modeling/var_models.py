@@ -103,7 +103,6 @@ class VAR(LinearAR):
         }
 
     @staticmethod
-    @numpyro.handlers.reparam(config={"intercept": LocScaleReparam(0)})
     def model(y, y_index, lags, future=0, **kwargs):
         """
         Autoregressive process.
@@ -119,20 +118,20 @@ class VAR(LinearAR):
             None - samples
 
         """
-        global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
-        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
+        nu = numpyro.sample("nu", dist.InverseGamma(1, 1))
 
         ar_lag = max_lag = lags.get("y")
 
-        theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
+        # static priors
+        theta = numpyro.sample("theta", dist.InverseGamma(1, 0.1), sample_shape=(4,))
 
         with numpyro.plate("lakes", size=4):
             with numpyro.plate("other_lake", size=4):
                 with numpyro.plate("ar_terms", size=ar_lag):
-                    ar_alpha = numpyro.sample("ar_alpha", dist.Normal(0, 0.5))
+                    ar_alpha = numpyro.sample("ar_alpha", dist.Normal(0, 1))
 
             with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Normal(global_mu, 1))
+                intercept = numpyro.sample("intercept", dist.Normal(0, 1))
 
         # t_nu = numpyro.sample("t_nu", dist.HalfNormal(10))
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
@@ -242,23 +241,24 @@ class VARX(LinearAR):
             None - samples
 
         """
+        # assert covariates.shape[-1] == 3, "Only three covariates are supported."
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
-        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
+        nu = numpyro.sample("nu", dist.InverseGamma(1, 0.1))
 
         ar_lag = max_lag = lags.get("y")
-        covars = jnp.array(covariates)
-
-        theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
+        covars = jnp.array(covariates.sel(type="Water").drop("type"))
 
         with numpyro.plate("lakes", size=4):
+            theta = numpyro.sample("theta", dist.InverseGamma(1, 0.1))
             with numpyro.plate("other_lake", size=4):
                 with numpyro.plate("series", covars.shape[-1]):
+                    # covariate coefficients
                     beta_lake = numpyro.sample("beta_var", dist.Normal(0, 0.5))
                 with numpyro.plate("ar_terms", size=ar_lag):
+                    # autoregressive terms
                     ar_alpha = numpyro.sample("ar_alpha", dist.Normal(0, 0.5))
 
-            with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Normal(global_mu, 1))
+            intercept = numpyro.sample("intercept", dist.Normal(global_mu, 1))
 
         # t_nu = numpyro.sample("t_nu", dist.HalfNormal(10))
         l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
@@ -283,7 +283,7 @@ class VARX(LinearAR):
             for j in range(beta_lake.shape[0]):
                 m_t += jnp.matmul(beta_lake[j, :, :], covariate_mat[:, j])
 
-            m_t += intercept[month_t, :]
+            m_t += intercept  # [month_t, :]
             y_t = numpyro.sample(
                 "y", dist.MultivariateStudentT(df=nu, loc=m_t, scale_tril=L_Omega)
             )
@@ -332,6 +332,7 @@ class NARX(NumpyroModel):
         pass
 
     @staticmethod
+    @numpyro.handlers.reparam(config={"intercept": LocScaleReparam(0)})
     def model(y, y_index, lags, covariates, future=0):
         """
         Autoregressive process.
