@@ -38,6 +38,12 @@ def matern_kernel(X, Z, lengthscale=1.0, nu=1.0):
 
 class NumpyroLagGP(NumpyroModel):
 
+    """
+    Numpyro Gaussian Process model with lagged target variable and static covariates.
+
+    TODO: This model is not yet implemented and is a work in progress.
+    """
+
     @property
     def coords(self):
         pass

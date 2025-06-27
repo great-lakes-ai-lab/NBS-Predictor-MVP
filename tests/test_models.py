@@ -98,7 +98,7 @@ def preprocessor():
     return Pipeline([("scaler", XArrayStandardScaler())])
 
 
-@pytest.mark.skipif(skip_tests, reason="Skip kernel fits")
+@pytest.mark.skipif(False, reason="Skip kernel fits")
 @pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
 def test_model_fit(model: ModelBase, snapshot, preprocessor):
     y_scaler = XArrayStandardScaler()
