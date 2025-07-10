@@ -172,4 +172,4 @@ cython_debug/
 .idea/
 data/
 .vscode
-/_scratch/
+*_scratch*
