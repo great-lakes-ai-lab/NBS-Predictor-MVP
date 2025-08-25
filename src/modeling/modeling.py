@@ -30,7 +30,7 @@ class ModelBase(ABC):
 
     @property
     @abstractmethod
-    def name(self):
+    def name(self) -> str:
         pass
 
     @abstractmethod
@@ -91,12 +91,12 @@ class NumpyroModel(ModelBase):
 
     @property
     @abstractmethod
-    def coords(self):
+    def coords(self) -> dict[str, list[str]]:
         pass
 
     @property
     @abstractmethod
-    def dims(self):
+    def dims(self) -> dict[str, list[str]]:
         pass
 
     def save(self, path):

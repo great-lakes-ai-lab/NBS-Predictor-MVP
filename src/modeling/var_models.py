@@ -15,8 +15,9 @@ from src.utils import flatten_array, lag_array
 
 __all__ = [
     # Classes
-    "VAR",
+    "VARX",
     "NARX",
+    "VAR",
 ]
 
 
@@ -70,6 +71,91 @@ class VAR(NumpyroModel):
                 for k in self.lags.keys()
             },
         }
+
+    @staticmethod
+    @numpyro.handlers.reparam(config={"intercept": LocScaleReparam(0)})
+    def model(y, y_index, lags, covariates, future=0):
+        """
+        Autoregressive process.
+        Args:
+            y: the time series to fit
+            covariates: An XArray of covariates for use in the model. Leading index should be date, second index should be lake, and the third index is the actual covariate values.
+            lags: A dictionary indicating which covariates have which lags
+            future: How many periods to run into the future.
+
+        Returns:
+            None - samples
+
+        """
+        global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
+        nu = numpyro.sample("nu", dist.HalfNormal(10.0))
+
+        # this effectively removes first first entries from the covariates so that 
+        # the total length of the covariates is the same as the length of the y.
+        ar_lag = max_lag = lags.get("y")
+        theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
+        
+            
+        intercept_sigma = numpyro.sample("intercept_sigma", dist.HalfNormal(1))
+        with numpyro.plate("lakes", size=4):
+            with numpyro.plate("months", size=12):
+                intercept = numpyro.sample("intercept", dist.Normal(global_mu, intercept_sigma))
+            with numpyro.plate("lags", size=max_lag):
+                lag_sigma = numpyro.sample("lag_sigma", dist.HalfNormal(1))
+                lag_beta = numpyro.sample("lag_terms", dist.Normal(0, lag_sigma))
+
+        # correlation stucture for a multivariate T distribution; note that
+        # are assuming a t-distribution so we need a "nu" parameter as well.
+        l_omega = numpyro.sample("corr", dist.LKJCholesky(4, concentration=0.5))
+        sigma = jnp.sqrt(theta)
+        L_Omega = sigma[..., None] * l_omega
+
+        def transition_fn(carry, covars):
+            prev_y = carry
+            month_t = covars
+
+            m_t = intercept[month_t] + jnp.einsum("tl,tl -> l", lag_beta, prev_y)
+            # generate an empty sum, one for each lake
+            y_t = numpyro.sample(
+                "y", dist.MultivariateStudentT(df=nu, loc=m_t, scale_tril=L_Omega)
+            )
+
+            if ar_lag > 1:
+                new_vals = jnp.append(prev_y[1:], y_t.reshape(1, -1), axis=0)
+            else:
+                new_vals = y_t.reshape(1, -1)
+            return new_vals, y_t
+
+        prev = y[:max_lag][-ar_lag:]
+        # need to subtract one because indexing starts at 0.
+        months = jnp.array(y_index.month - 1)
+        initial_values = prev
+
+        # this tuple includes the months and the covariates, but does not require
+        # the y-values. That's pass under initial values.
+
+        covar_tuple = months[max_lag:]
+
+        if future > 0:
+            y_fit = y[:-future]
+        else:
+            y_fit = y
+
+        # The conditioning here is extremely important, as it tells us
+        # what the actual values are. We start with the first value in the series
+        # for which we have a lagged value and predict forward from there
+        with numpyro.handlers.condition(data={"y": y_fit[max_lag:]}):
+            _, ys = scan(transition_fn, initial_values, covar_tuple)
+
+        if future > 0:
+            numpyro.deterministic("y_forecast", ys[-future:])
+
+
+class VARX(VAR):
+
+    @property
+    def name(self):
+        return "VARX"
 
     def load(cls, path):
         pass

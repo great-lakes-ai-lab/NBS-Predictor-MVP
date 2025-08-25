@@ -54,7 +54,7 @@ packages = [
 ]
 
 # Function to test importing each package
-def test_imports(packages):
+def test_imports():
     failed_imports = []
     for pkg in packages:
         print(f"Testing import for package: {pkg}")
