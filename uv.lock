@@ -972,6 +972,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "pytest" },
     { name = "ruff" },
 ]
 testing = [
@@ -992,6 +993,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "plotnine", specifier = ">=0.15.1" },
     { name = "properscoring", specifier = ">=0.1" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.1" },
     { name = "pytest", marker = "extra == 'testing'", specifier = ">=9.0.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.10" },
     { name = "scikit-fda", specifier = ">=0.10.1" },

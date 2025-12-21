@@ -1,14 +1,14 @@
 import pytest
-from sklearn.pipeline import Pipeline
 import xarray as xr
+from sklearn.pipeline import Pipeline
 
-from src.preprocessing.preprocessing import XArrayStandardScaler
+from src.composition import ModelPipeline
 from src.modeling.ensemble import DefaultEnsemble
 from src.postprocessing.postprocessing import (
-    PostprocessingPipeline,
     ExceedanceProbClosure,
+    PostprocessingPipeline,
 )
-from src.composition import ModelPipeline
+from src.preprocessing.preprocessing import XArrayStandardScaler
 
 
 @pytest.fixture

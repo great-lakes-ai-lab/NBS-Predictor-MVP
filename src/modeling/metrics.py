@@ -6,10 +6,10 @@ from numpy.typing import NDArray
 from properscoring import crps_gaussian
 from sklearn.metrics import (
     mean_absolute_error,
+    mean_absolute_percentage_error,
     mean_squared_error,
     r2_score,
     root_mean_squared_error,
-    mean_absolute_percentage_error,
 )
 
 __all__ = [

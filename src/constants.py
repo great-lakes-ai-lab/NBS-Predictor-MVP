@@ -2,7 +2,6 @@
 import os
 from pathlib import Path
 
-
 # Note: constants should be UPPER_CASE
 constants_path = Path(os.path.realpath(__file__))
 SRC_PATH = Path(os.path.dirname(constants_path))

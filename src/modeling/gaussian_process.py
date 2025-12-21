@@ -1,10 +1,12 @@
+import logging
+from abc import ABC
+
 import gpytorch
 import jax
 import numpy as np
 import numpyro
 import torch
 import xarray as xr
-from abc import ABC
 from jax import numpy as jnp
 from numpyro import distributions as dist
 from scipy.stats import norm
@@ -13,8 +15,6 @@ from sklearn.gaussian_process import GaussianProcessRegressor, kernels
 from src.modeling.modeling import ModelBase, NumpyroModel
 from src.postprocessing import output_forecast_results
 from src.utils import flatten_array, lag_array
-
-import logging
 
 __all__ = ["SklearnGPModel", "LaggedSklearnGP", "MultitaskGP"]
 

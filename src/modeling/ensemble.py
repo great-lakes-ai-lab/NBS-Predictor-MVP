@@ -2,8 +2,8 @@ import numpy as np
 import xarray as xr
 from sklearn.ensemble import (
     BaggingRegressor,
-    RandomForestRegressor,
     GradientBoostingRegressor,
+    RandomForestRegressor,
 )
 from sklearn.linear_model import LinearRegression
 

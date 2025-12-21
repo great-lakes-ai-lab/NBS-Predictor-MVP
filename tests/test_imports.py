@@ -1,6 +1,6 @@
-import sys
-import platform
 import os
+import platform
+import sys
 
 # Print system info
 print(f"Python version: {sys.version}")

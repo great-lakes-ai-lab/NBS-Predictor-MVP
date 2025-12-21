@@ -28,5 +28,6 @@ testing = [
     "pytest>=9.0.1",
 ]
 dev = [
+    "pytest>=9.0.1",
     "ruff>=0.14.10",
 ]

@@ -1,17 +1,14 @@
 import calendar
+from collections.abc import Iterable
+from functools import partial
 
 import numpy as np
 import pandas as pd
 import xarray as xr
+from skfda import FDataBasis, FDataGrid
+from skfda.representation.basis import Basis, BSplineBasis
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
-
-from collections.abc import Iterable
-
-
-from skfda.representation.basis import Basis, BSplineBasis
-from skfda import FDataGrid, FDataBasis
-from functools import partial
 
 
 class XArrayStandardScaler(object):
@@ -413,28 +410,28 @@ class BasisFunctionTransformer(object):
 
 
 def time_window_generator(input_data, train_size, test_size, reindex_domain=True):
-    train_start = 0
-    train_idx = train_size
-    while (train_idx + test_size) <= len(input_data):
-        train_set, test_set = (
-            input_data[train_start:train_idx],
-            input_data[train_idx : (train_idx + test_size)],
+    train_idx = 0
+    test_idx = train_idx + train_size
+    while (train_idx + test_idx) <= len(input_data):
+        prior_set, forecast_set = (
+            input_data[train_idx:test_idx],
+            input_data[test_idx : (test_idx + test_size)],
         )
-        train_set.attrs["start_date"] = str(train_set.indexes["Date"][0].date())
-        test_set.attrs["start_date"] = str(test_set.indexes["Date"][0].date())
-        train_set.attrs["end_date"] = str(train_set.indexes["Date"][-1].date())
-        test_set.attrs["end_date"] = str(test_set.indexes["Date"][-1].date())
+        prior_set.attrs["start_date"] = str(prior_set.indexes["Date"][0].date())
+        forecast_set.attrs["start_date"] = str(forecast_set.indexes["Date"][0].date())
+        prior_set.attrs["end_date"] = str(prior_set.indexes["Date"][-1].date())
+        forecast_set.attrs["end_date"] = str(forecast_set.indexes["Date"][-1].date())
         if reindex_domain:
             train_lead_dim, test_lead_dim = (
-                train_set.dims[0],
-                test_set.dims[0],
+                prior_set.dims[0],
+                forecast_set.dims[0],
             )
-            train_set.coords[train_lead_dim] = np.arange(0, train_size)
-            test_set.coords[test_lead_dim] = np.arange(0, test_size)
+            prior_set.coords[train_lead_dim] = np.arange(0, train_size)
+            forecast_set.coords[test_lead_dim] = np.arange(0, test_size)
 
-        yield train_set, test_set
+        yield prior_set, forecast_set
         train_idx += 1
-        train_start += 1
+        test_idx += 1
 
 
 class WindowTransformer(object):

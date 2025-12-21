@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.preprocessing.preprocessing import XArrayStandardScaler
-from src.utils import create_rnbs_snapshot, acf, lag_array
+from src.utils import acf, create_rnbs_snapshot, lag_array
 
 
 @pytest.mark.parametrize(

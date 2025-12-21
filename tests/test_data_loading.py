@@ -1,7 +1,7 @@
 import pytest
 import xarray as xr
 
-from src.data_loading.data_loading import load_data, input_map, forecast_map
+from src.data_loading.data_loading import forecast_map, input_map, load_data
 
 
 @pytest.mark.parametrize("series", input_map.keys())

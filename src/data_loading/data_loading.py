@@ -1,8 +1,8 @@
 import datetime as dt
 import re
+from collections.abc import Iterable
 from functools import partial
 from typing import List, Union
-from collections.abc import Iterable
 
 import pandas as pd
 import xarray as xr

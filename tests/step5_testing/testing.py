@@ -1,4 +1,4 @@
-from . import data_loading, preprocessing, modeling, postprocessing
+from . import data_loading, modeling, postprocessing, preprocessing
 
 
 def run_pipeline(data_path, target_column):

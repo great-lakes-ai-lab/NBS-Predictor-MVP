@@ -20,7 +20,6 @@ X = enc.transform(X).toarray()
 
 
 import pandas as pd
-
 from skfda.representation.basis import FourierBasis
 
 X_df = pd.DataFrame(X)

@@ -1,17 +1,18 @@
-import xarray as xr
-from xarray.testing import assert_allclose
-import numpy as np
 from functools import partial
 
+import numpy as np
+import pytest
+import xarray as xr
 from skfda.representation.basis import BSplineBasis
+from xarray.testing import assert_allclose
 
 from src.preprocessing.preprocessing import (
+    BasisFunctionTransformer,
     CreateMonthDummies,
     SeasonalFeatures,
-    XArrayStandardScaler,
-    BasisFunctionTransformer,
-    time_window_generator,
     WindowTransformer,
+    XArrayStandardScaler,
+    time_window_generator,
 )
 from src.utils import flatten_array
 
@@ -61,11 +62,15 @@ def test_seasonal_features(lake_data):
     assert isinstance(seasonal_features, xr.DataArray)
 
 
-def test_time_windows(lake_data):
-    windows = time_window_generator(lake_data, train_size=48, test_size=12)
+@pytest.mark.parametrize("reindex", [True, False])
+def test_time_windows(lake_data, reindex):
+    windows = time_window_generator(
+        lake_data, train_size=48, test_size=12, reindex_domain=reindex
+    )
     for train, test in windows:
         assert train.shape[0] == 48 and test.shape[0] == 12
-        assert np.all(train.coords[train.dims[0]] == np.arange(0, 48))
+        if reindex:
+            assert np.all(train.coords[train.dims[0]] == np.arange(0, 48))
 
 
 def test_window_transformer(lake_data):
