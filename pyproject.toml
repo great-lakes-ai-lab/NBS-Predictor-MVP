@@ -29,5 +29,6 @@ testing = [
 ]
 dev = [
     "pytest>=9.0.1",
+    "pytest-env>=1.2.0",
     "ruff>=0.14.10",
 ]

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -25,6 +27,8 @@ from src.modeling.var_models import NARX, VAR, VARX
 from src.postprocessing.postprocessing import output_forecast_results
 from src.preprocessing.preprocessing import XArrayAdapter, XArrayStandardScaler
 from src.utils import flatten_array
+
+SKIP_TESTS = os.environ.get("SKIP_FITS", "true").lower() == "true"
 
 modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
@@ -97,7 +101,7 @@ def preprocessor():
     return Pipeline([("scaler", XArrayStandardScaler())])
 
 
-@pytest.mark.skipif(False, reason="Skip kernel fits")
+@pytest.mark.skipif(SKIP_TESTS, reason="Skip kernel fits")
 @pytest.mark.parametrize("model", modelList.values(), ids=modelList.keys())
 def test_model_fit(model: ModelBase, snapshot, preprocessor):
     y_scaler = XArrayStandardScaler()

@@ -11,7 +11,7 @@ def lake_data():
     data = (
         load_data(["rnbs", "runoff", "precip", "evap"])
         .sel(type="Thiessen")
-        .drop("type")
+        .drop_vars("type")
     )
     return data.to_array().transpose("Date", "lake", ...)
 

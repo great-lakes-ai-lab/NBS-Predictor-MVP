@@ -114,7 +114,7 @@ def read_cfsr_files(path, reader_args=None, sum_mic_hur: bool = True) -> xr.Data
         .to_xarray()
         .to_array()
         .squeeze()
-        .drop("variable")
+        .drop_vars("variable")
     )
 
     if sum_mic_hur == "sum":
@@ -188,7 +188,7 @@ def read_cfs_file(path, sum_mic_hur=True) -> xr.DataArray:
         .to_xarray()
         .to_array()
         .squeeze()
-        .drop("variable")
+        .drop_vars("variable")
     )
 
     # need to collapse michigan/huron measurements together into a single lake
@@ -359,12 +359,12 @@ def load_data(series: Union[str, List[str]], data_type="inputs"):
     # If a list of series is passed in, recursively call the loading function
     if isinstance(series, List):
         return xr.merge(
-            [load_data(s, data_type=data_type).rename(s) for s in series]
+            [load_data(s, data_type=data_type).rename(s) for s in series], join="outer"
         ).transpose("Date", "lake", ...)
     else:
         read_fn = series_mapping[series]
         if isinstance(read_fn, list):
             inputs = [read_fn() for read_fn in series_mapping[series]]
-            return xr.concat(inputs, dim="type").rename(series)
+            return xr.concat(inputs, dim="type", join="outer").rename(series)
         else:
             return read_fn().rename(series)
