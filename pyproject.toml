@@ -1,0 +1,29 @@
+[project]
+name = "nbs-predictor-mvp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "arviz>=0.22.0",
+    "gpytorch>=1.14.2",
+    "ipython>=9.7.0",
+    "jax>=0.8.0",
+    "mizani>=0.14.3",
+    "numpy>=2.3.5",
+    "numpyro>=0.19.0",
+    "pandas>=2.3.3",
+    "plotnine>=0.15.1",
+    "properscoring>=0.1",
+    "scikit-fda>=0.10.1",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "torch>=2.9.1",
+    "xarray>=2025.10.1",
+]
+
+[project.optional-dependencies]
+testing = [
+    "ipykernel>=7.1.0",
+    "pytest>=9.0.1",
+]

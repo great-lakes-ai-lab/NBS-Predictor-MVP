@@ -1,0 +1,3 @@
+import src
+
+print('hello!')

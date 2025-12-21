@@ -6,6 +6,13 @@ import xarray as xr
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder
 
+from collections.abc import Iterable
+
+
+from skfda.representation.basis import Basis, BSplineBasis
+from skfda import FData, FDataGrid, FDataBasis
+from functools import partial, reduce
+
 
 class XArrayStandardScaler(object):
     """
@@ -122,7 +129,6 @@ class XArrayStandardScaler(object):
 
 
 class MinMaxScaler(object):
-
     def __init__(self):
         self.is_fitted = False
         self.mins = None
@@ -182,7 +188,6 @@ def scale_features(data):
 
 
 class CreateMonthDummies(object):
-
     def __init__(self, encoder=None):
         self.encoder = encoder or OneHotEncoder(
             categories="auto", sparse_output=False, drop=[1]
@@ -211,7 +216,6 @@ class CreateMonthDummies(object):
 
 
 class SeasonalFeatures(object):
-
     def __init__(self, period=12):
         self.period = period
 
@@ -246,7 +250,6 @@ def sin_feature(x, period):
 
 
 class XArrayAdapter(object):
-
     def __init__(self, sklearn_preprocessor, feature_prefix="f"):
         super().__init__()
         self.sklearn_preprocessor = sklearn_preprocessor
@@ -279,7 +282,6 @@ class XArrayAdapter(object):
 
 
 class XArrayFeatureUnion(object):
-
     def __init__(self, transformers):
         self.transformers = transformers
 
@@ -290,6 +292,185 @@ class XArrayFeatureUnion(object):
     def fit(self, X: xr.DataArray, y=None):
         for _, transformer in self.transformers:
             transformer.fit(X, y)
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X, y)
+        return self.transform(X)
+
+
+class BasisFunctionTransformer(object):
+    def __init__(
+        self,
+        default_basis: Iterable[Basis] | partial | Basis = BSplineBasis(n_basis=5),
+        basis_mapping: dict | None = None,
+    ):
+        self.default_basis = default_basis
+        self.basis_functions = default_basis
+        self.domain = None
+        self.basis_mapping = basis_mapping or {}
+        self.original_coords = None
+        self.original_dims = None
+
+    def fit(self, X: xr.DataArray, y=None):
+        self.domain = float(X["Date"].min()), float(X["Date"].max())
+        self.basis_lookup = {}
+        self.original_coords = X.coords
+        self.original_dims = X.dims
+        for lake_arr in X.transpose("lake", "variable", ...):
+            lake_name = str(lake_arr.coords["lake"].values)
+            self.basis_lookup.update({lake_name: {}})
+            for var in lake_arr:
+                var_name = str(var.coords["variable"].values)
+                self.basis_lookup[lake_name].update(
+                    {
+                        var_name: self._grid_to_basis(
+                            var,
+                            self.basis_mapping.get(var_name, self.default_basis)(
+                                domain_range=self.domain
+                            ),
+                        )
+                    }
+                )
+        return
+
+    def _grid_to_basis(self, data_array: xr.DataArray, basis_fn: Basis):
+        data_grid = FDataGrid(
+            data_array.values,
+            grid_points=np.linspace(
+                self.domain[0], self.domain[1], data_array.coords["Date"].shape[0]
+            ),
+        )
+        grid_basis = data_grid.to_basis(basis_fn)
+        return grid_basis
+
+    def transform(self, X: xr.DataArray, y=None):
+        lake_data = []
+        for lake_arr in X.transpose("lake", "variable", ...):
+            lake_name = str(lake_arr.lake.values)
+            var_curves = []
+            for var in lake_arr:
+                var_name = str(var.coords["variable"].values)
+                basis_coeff = xr.DataArray(
+                    self._grid_to_basis(
+                        var, self.basis_lookup[lake_name][var_name].basis
+                    ).coefficients,
+                    dims=("start_date", "basis_dim"),
+                    coords={
+                        "start_date": X.coords["start_date"],
+                        "basis_dim": np.arange(
+                            self.basis_lookup[lake_name][var_name].basis.n_basis
+                        ),
+                    },
+                )
+                var_curves.append(basis_coeff)
+            all_vars = xr.concat(
+                var_curves,
+                dim=lake_arr.coords["variable"],
+                # coords={"variable": lake_arr.coords["variable"]},
+            )
+            lake_data.append(all_vars)
+        lake_coeff = xr.concat(lake_data, dim=X.coords["lake"]).transpose(
+            "start_date", "basis_dim", "variable", "lake"
+        )
+        return lake_coeff
+
+    def fit_transform(self, X: xr.DataArray, y=None):
+        self.fit(X, y)
+        return self.transform(X)
+
+    def inverse_transform(self, coefficients: xr.DataArray, grid=None):
+        full_output = []
+        for lake in coefficients.coords["lake"].values:
+            var_output = []
+            if grid is not None:
+                grid_points = grid
+            else:
+                grid_points = np.arange(self.domain[0], self.domain[1] + 1, 1)
+
+            for var in coefficients.coords["variable"].values:
+                coeffs = coefficients.sel(lake=lake, variable=var).values
+                basis_fn = self.basis_lookup[lake][var].basis
+                basis_output = (
+                    FDataBasis(basis_fn, coefficients=coeffs)
+                    .to_grid(grid_points)
+                    .data_matrix[:, :, 0]
+                )
+                output_arr = xr.DataArray(
+                    basis_output,
+                    dims=["start_date", "Date"],
+                    coords={
+                        "start_date": self.original_coords["start_date"],
+                        "Date": self.original_coords["Date"],
+                    },
+                )
+                var_output.append(output_arr)
+
+            var_output = xr.concat(var_output, dim=coefficients.coords["variable"])
+            full_output.append(var_output)
+
+        all_output = xr.concat(full_output, dim=coefficients.coords["lake"])
+        return all_output.transpose(*self.original_dims)
+
+
+def time_window_generator(input_data, train_size, test_size, reindex_domain=True):
+    train_start = 0
+    train_idx = train_size
+    while (train_idx + test_size) <= len(input_data):
+        train_set, test_set = (
+            input_data[train_start:train_idx],
+            input_data[train_idx : (train_idx + test_size)],
+        )
+        train_set.attrs["start_date"] = str(train_set.indexes["Date"][0].date())
+        test_set.attrs["start_date"] = str(test_set.indexes["Date"][0].date())
+        train_set.attrs["end_date"] = str(train_set.indexes["Date"][-1].date())
+        test_set.attrs["end_date"] = str(test_set.indexes["Date"][-1].date())
+        if reindex_domain:
+            train_lead_dim, test_lead_dim = (
+                train_set.dims[0],
+                test_set.dims[0],
+            )
+            train_set.coords[train_lead_dim] = np.arange(0, train_size)
+            test_set.coords[test_lead_dim] = np.arange(0, test_size)
+
+        yield train_set, test_set
+        train_idx += 1
+        train_start += 1
+
+
+class WindowTransformer(object):
+    def __init__(self, train_size=12, test_size=12, **kwargs):
+        self.train_size = train_size
+        self.test_size = test_size
+        self.generator_kwargs = kwargs
+
+    def transform(self, X: xr.DataArray):
+        data_windows = list(
+            time_window_generator(
+                X,
+                train_size=self.train_size,
+                test_size=self.test_size,
+                **self.generator_kwargs,
+            )
+        )
+
+        train_window_dates = xr.DataArray(
+            [train.attrs["start_date"] for train, _ in data_windows], dims="start_date"
+        )
+        test_window_dates = xr.DataArray(
+            [test.attrs["start_date"] for _, test in data_windows], dims="start_date"
+        )
+
+        train_outputs = xr.concat(
+            [train for train, _ in data_windows], dim=train_window_dates
+        )
+        test_outputs = xr.concat(
+            [test for _, test in data_windows], dim=test_window_dates
+        )
+
+        return train_outputs, test_outputs
+
+    def fit(self, X: xr.DataArray, y=None):
+        pass
 
     def fit_transform(self, X: xr.DataArray, y=None):
         self.fit(X, y)
