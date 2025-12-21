@@ -50,8 +50,9 @@ packages = [
     "tensorflow",
     "termcolor",
     "werkzeug",
-    "wrapt"
+    "wrapt",
 ]
+
 
 # Function to test importing each package
 def test_imports():
@@ -68,6 +69,7 @@ def test_imports():
             print(f"An error occurred while importing {pkg}: {e}")
             failed_imports.append(pkg)
     return failed_imports
+
 
 if __name__ == "__main__":
     failed = test_imports(packages)

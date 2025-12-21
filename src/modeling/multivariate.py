@@ -13,7 +13,6 @@ __all__ = [
 
 
 class LakeMVT(NumpyroModel):
-
     @property
     def name(self) -> str:
         return "LakeMVT"

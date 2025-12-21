@@ -13,7 +13,6 @@ __all__ = [
 
 
 class PostprocessingPipeline(object):
-
     def __init__(self, steps):
         self.steps = steps
 
@@ -53,7 +52,6 @@ def save_model(model, file_path):
 
 
 class ExceedanceProbClosure(object):
-
     def __init__(
         self,
         hist_rnbs: xr.DataArray,
@@ -71,7 +69,6 @@ class ExceedanceProbClosure(object):
         return self.__call__(X)
 
     def __call__(self, x: xr.DataArray):
-
         exceedances = xr.concat(
             [
                 xr.DataArray(
@@ -98,7 +95,7 @@ def output_forecast_results(
     array,
     forecast_labels: pd.DatetimeIndex,
     lakes=("sup", "mic_hur", "eri", "ont"),
-    **kwargs
+    **kwargs,
 ):
     assert len(array.shape) == 3, "Dims must be forecast -> lake -> value"
     if isinstance(lakes, tuple):

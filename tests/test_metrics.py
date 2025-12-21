@@ -7,7 +7,6 @@ from src.modeling import summarize
 
 @pytest.fixture
 def fake_results():
-
     true = np.random.standard_normal(size=100)
     mean = np.random.uniform(-2, 2, size=100)
     lower, upper = mean - 1, mean + 1

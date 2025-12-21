@@ -33,11 +33,10 @@ def rbf_kernel(X, Z, lengthscale, variance, noise=None, jitter=1e-6):
 
 
 def matern_kernel(X, Z, lengthscale=1.0, nu=1.0):
-    raise NotImplemented
+    raise NotImplementedError
 
 
 class NumpyroLagGP(NumpyroModel):
-
     """
     Numpyro Gaussian Process model with lagged target variable and static covariates.
 
@@ -89,7 +88,6 @@ class NumpyroLagGP(NumpyroModel):
         # do GP prediction for a given set of hyperparameters. this makes use of the well-known
         # formula for Gaussian process predictions
         def transition(carry, covariates):
-
             X, Y, X_test = covariates
 
             new_covars = jnp.concatenate([X_test, carry], axis=1)
@@ -176,7 +174,6 @@ class SklearnGPModel(ModelBase, ABC):
 
 
 class LaggedSklearnGP(ModelBase):
-
     def __init__(self, kernel=1.0 * kernels.Matern(), lags=None, *args, **kwargs):
         """
         Gaussian Process from sklearn. Assumes identical variance across lakes, though not means.
@@ -278,7 +275,6 @@ class GPyTorchKernel(gpytorch.models.ExactGP):
 
 
 class MultitaskGP(ModelBase):
-
     def __init__(self, epochs=50, optimizer_params=None, **kernel_args):
         super().__init__()
 
@@ -295,7 +291,6 @@ class MultitaskGP(ModelBase):
         return "MultiTaskGP"
 
     def fit(self, X, y, *args, **kwargs):
-
         X = torch.tensor(X.values, dtype=torch.float32)
         y = torch.tensor(y.values, dtype=torch.float32)
 

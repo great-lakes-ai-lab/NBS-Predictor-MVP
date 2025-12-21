@@ -11,7 +11,6 @@ from src.postprocessing.postprocessing import (
 
 @pytest.fixture
 def fake_data():
-
     fake_train = xr.DataArray(
         np.random.standard_normal(size=(250, 4)),
         dims=["Date", "lake"],
@@ -28,7 +27,6 @@ def fake_data():
 
 
 def test_ecdf(fake_data):
-
     train, forecast = fake_data
 
     exceedence_fn = ExceedanceProbClosure(train)

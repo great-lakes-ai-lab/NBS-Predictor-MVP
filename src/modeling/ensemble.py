@@ -18,7 +18,6 @@ __all__ = [
 
 
 class DefaultEnsemble(ModelBase):
-
     @property
     def name(self):
         return "DefaultEnsemble"
@@ -113,7 +112,6 @@ class BaggedXArrayRegressor(ModelBase):
 
 
 class RandomForest(ModelBase):
-
     def __init__(self, rf_model=None):
         super().__init__()
         self.model = rf_model or RandomForestRegressor(n_estimators=100)
@@ -151,7 +149,6 @@ class RandomForest(ModelBase):
 
 
 class BoostedRegressor(ModelBase):
-
     def __init__(self, alpha=0.05, **regressor_args):
         super().__init__()
         self.alpha = alpha

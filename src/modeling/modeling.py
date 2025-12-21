@@ -24,7 +24,6 @@ __all__ = [
 
 
 class ModelBase(ABC):
-
     def __init__(self):
         super().__init__()
 
@@ -66,7 +65,6 @@ class ModelBase(ABC):
 
 
 class NumpyroModel(ModelBase):
-
     def __init__(
         self,
         lags=None,

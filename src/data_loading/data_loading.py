@@ -215,13 +215,12 @@ def read_cfs_file(path, sum_mic_hur=True) -> xr.DataArray:
 
 
 class FileReader(object):
-
     def __init__(
         self,
         path,
         series_name=None,
         reader: callable = read_historical_files,
-        **metadata
+        **metadata,
     ):
         """
         Helper class to connect a particular CSV reader and an Xarray formatter. There are default
@@ -241,7 +240,6 @@ class FileReader(object):
         self.series_name = series_name
 
     def __call__(self) -> xr.DataArray:
-
         # If a list of files is passed in, assume that we want to concatenate across dates
         # otherwise, just read in the file and return the Xarray
         # In both cases, assign the metadata to the Xarray

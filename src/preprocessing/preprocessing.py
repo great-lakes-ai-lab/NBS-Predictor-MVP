@@ -10,8 +10,8 @@ from collections.abc import Iterable
 
 
 from skfda.representation.basis import Basis, BSplineBasis
-from skfda import FData, FDataGrid, FDataBasis
-from functools import partial, reduce
+from skfda import FDataGrid, FDataBasis
+from functools import partial
 
 
 class XArrayStandardScaler(object):

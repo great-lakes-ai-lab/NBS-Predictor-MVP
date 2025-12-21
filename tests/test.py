@@ -1,3 +1,1 @@
-import src
-
-print('hello!')
+print("hello!")

@@ -18,7 +18,6 @@ def lake_data():
 
 @pytest.fixture
 def snapshot(lake_data):
-
     data_subset = lake_data.dropna("Date")
     snapshot = create_rnbs_snapshot(
         data_subset.sel(variable="rnbs"),

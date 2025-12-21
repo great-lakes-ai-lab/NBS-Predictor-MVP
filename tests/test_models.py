@@ -25,7 +25,6 @@ from src.modeling.nn import BayesNN
 from src.modeling.var_models import NARX, VARX, VAR
 from src.postprocessing.postprocessing import output_forecast_results
 from src.utils import flatten_array
-from tests.conftest import skip_tests
 
 modelList = {
     "DefaultEnsemble": DefaultEnsemble(),
@@ -36,7 +35,7 @@ modelList = {
         num_warmup=0,
         num_samples=3,
         num_chains=1,
-        lags={"y": 1, "precip": 1, "evap": 1},  # note 
+        lags={"y": 1, "precip": 1, "evap": 1},  # note
     ),
     "GP": Pipeline(
         steps=[

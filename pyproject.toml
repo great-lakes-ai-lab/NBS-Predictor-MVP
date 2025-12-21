@@ -27,3 +27,6 @@ testing = [
     "ipykernel>=7.1.0",
     "pytest>=9.0.1",
 ]
+dev = [
+    "ruff>=0.14.10",
+]

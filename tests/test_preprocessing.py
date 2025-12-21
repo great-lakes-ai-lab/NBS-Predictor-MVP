@@ -1,10 +1,9 @@
-import pytest
 import xarray as xr
 from xarray.testing import assert_allclose
 import numpy as np
 from functools import partial
 
-from skfda.representation.basis import BSplineBasis, FourierBasis
+from skfda.representation.basis import BSplineBasis
 
 from src.preprocessing.preprocessing import (
     CreateMonthDummies,

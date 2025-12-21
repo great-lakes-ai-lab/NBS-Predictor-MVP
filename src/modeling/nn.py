@@ -8,7 +8,6 @@ from src.modeling.modeling import NumpyroModel
 
 
 class BayesNN(NumpyroModel):
-
     def __init__(self, lags=None, num_chains=4, num_samples=1000, num_warmup=1000):
         super().__init__(lags, num_chains, num_samples, num_warmup)
 
@@ -27,7 +26,6 @@ class BayesNN(NumpyroModel):
 
     @staticmethod
     def model(y, y_index, lags, covariates, future=0):
-
         input_dim = covariates.shape[1]
         h1 = 16
         output_dim = 4
