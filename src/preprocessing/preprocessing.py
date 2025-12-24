@@ -376,6 +376,7 @@ class BasisFunctionTransformer(object):
         return self.transform(X)
 
     def inverse_transform(self, coefficients: xr.DataArray, grid=None):
+        # TODO: This is not the most efficient way to do this
         full_output = []
         for lake in coefficients.coords["lake"].values:
             var_output = []
@@ -412,7 +413,7 @@ class BasisFunctionTransformer(object):
 def time_window_generator(input_data, train_size, test_size, reindex_domain=True):
     train_idx = 0
     test_idx = train_idx + train_size
-    while (train_idx + test_idx) <= len(input_data):
+    while (test_idx + test_size) <= len(input_data):
         prior_set, forecast_set = (
             input_data[train_idx:test_idx],
             input_data[test_idx : (test_idx + test_size)],

@@ -62,15 +62,22 @@ def test_seasonal_features(lake_data):
     assert isinstance(seasonal_features, xr.DataArray)
 
 
-@pytest.mark.parametrize("reindex", [True, False])
+@pytest.mark.parametrize("reindex", [True, False], ids=["reindex", "no_reindex"])
 def test_time_windows(lake_data, reindex):
+    test_size = 12
+    train_size = 48
     windows = time_window_generator(
-        lake_data, train_size=48, test_size=12, reindex_domain=reindex
+        lake_data, train_size=train_size, test_size=test_size, reindex_domain=reindex
     )
     for train, test in windows:
-        assert train.shape[0] == 48 and test.shape[0] == 12
+        assert train.shape[0] == train_size and test.shape[0] == test_size
         if reindex:
-            assert np.all(train.coords[train.dims[0]] == np.arange(0, 48))
+            assert np.all(train.coords[train.dims[0]] == np.arange(0, train_size))
+            assert np.all(test.coords[test.dims[0]] == np.arange(0, test_size))
+    if not reindex:
+        assert np.all(
+            test.coords["Date"].values == lake_data.coords["Date"].values[-test_size:]
+        ), "Last test window dates do not match original data"
 
 
 def test_window_transformer(lake_data):
