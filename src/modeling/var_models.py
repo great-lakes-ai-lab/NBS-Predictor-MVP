@@ -22,7 +22,6 @@ __all__ = [
 
 
 class VAR(NumpyroModel):
-
     @property
     def name(self):
         return "VAR"
@@ -90,16 +89,17 @@ class VAR(NumpyroModel):
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
         nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
-        # this effectively removes first first entries from the covariates so that 
+        # this effectively removes first first entries from the covariates so that
         # the total length of the covariates is the same as the length of the y.
         ar_lag = max_lag = lags.get("y")
         theta = numpyro.sample("theta", dist.HalfNormal(5), sample_shape=(4,))
-        
-            
+
         intercept_sigma = numpyro.sample("intercept_sigma", dist.HalfNormal(1))
         with numpyro.plate("lakes", size=4):
             with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Normal(global_mu, intercept_sigma))
+                intercept = numpyro.sample(
+                    "intercept", dist.Normal(global_mu, intercept_sigma)
+                )
             with numpyro.plate("lags", size=max_lag):
                 lag_sigma = numpyro.sample("lag_sigma", dist.HalfNormal(1))
                 lag_beta = numpyro.sample("lag_terms", dist.Normal(0, lag_sigma))
@@ -152,7 +152,6 @@ class VAR(NumpyroModel):
 
 
 class VARX(VAR):
-
     @property
     def name(self):
         return "VARX"
@@ -181,7 +180,7 @@ class VARX(VAR):
         global_mu = numpyro.sample("global_mu", dist.Normal(0, 1))
         nu = numpyro.sample("nu", dist.HalfNormal(10.0))
 
-        # this effectively removes first first entries from the covariates so that 
+        # this effectively removes first first entries from the covariates so that
         # the total length of the covariates is the same as the length of the y.
         ar_lag = max_lag = lags.get("y")
         covars = [
@@ -190,10 +189,11 @@ class VARX(VAR):
             if covar != "y"
         ]
 
+        covar_sigma = numpyro.sample("covar_sigma", dist.HalfNormal(1))
         covar_alphas = [
             numpyro.sample(
                 f"{cov}_alpha",
-                dist.Normal(0, 0.5),
+                dist.Normal(0, covar_sigma),
                 sample_shape=(4, 4, lag) if cov == "y" else (4, 4),  # lag at 0
             )
             for cov, lag in lags.items()
@@ -203,7 +203,9 @@ class VARX(VAR):
         intercept_sigma = numpyro.sample("intercept_sigma", dist.HalfNormal(1))
         with numpyro.plate("lakes", size=4):
             with numpyro.plate("months", size=12):
-                intercept = numpyro.sample("intercept", dist.Normal(global_mu, intercept_sigma))
+                intercept = numpyro.sample(
+                    "intercept", dist.Normal(global_mu, intercept_sigma)
+                )
 
         # correlation stucture for a multivariate T distribution; note that
         # are assuming a t-distribution so we need a "nu" parameter as well.
@@ -269,7 +271,6 @@ class VARX(VAR):
 
 
 class NARX(NumpyroModel):
-
     def __init__(self, lags=None, num_chains=4, num_samples=1000, num_warmup=1000):
         super().__init__(lags, num_chains, num_samples, num_warmup)
         self.lags = lags or {"y": 3, "evap": 2, "precip": 2}
